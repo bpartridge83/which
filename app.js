@@ -1,6 +1,13 @@
-var express = require('express');
+var express = require('express'),
+	app = express();
 
-var app = express();
+app.get('/*', function(req, res, next) {
+  if (req.headers.host.match(/^www/) !== null ) {
+    res.redirect('http://' + req.headers.host.replace(/^www\./, '') + req.url);
+  } else {
+    next();     
+  }
+});
 
 app.get('/', function(request, response) {
   response.send('Hello World!');
