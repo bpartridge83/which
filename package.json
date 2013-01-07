@@ -1,8 +1,9 @@
 {
-  "name": "which-node-test",
+  "name": "which-io",
   "version": "0.0.1",
   "dependencies": {
-    "express": "3.0.x"
+    "express": "3.0.x",
+    "twig": ""
   },
   "engines": {
     "node": "0.8.x",
