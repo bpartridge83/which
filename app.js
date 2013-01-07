@@ -11,6 +11,7 @@ app.configure(function () {
     // We don't need express to use a parent "page" layout
     // Twig.js has support for this using the {% extends parent %} tag
     app.set("view options", { layout: false });
+	app.use(express.favicon(__dirname + '/public/favicon.ico'));
 });
 
 app.get('/*', function(req, res, next) {
