@@ -1,9 +1,10 @@
 #home {
-  text-align: center;
-  background: url(../img/body-bg.jpg) center bottom no-repeat transparent;
-  background-size: 100% auto; }
+  text-align: center; }
+  #home header, #home #header {
+    background: url(../img/body-bg.jpg) center top no-repeat #3e4d68; }
   #home #header {
-    background-color: #3e4d68; }
+    padding-top: 42px;
+    background-position: center -72px; }
     #home #header img {
       margin: 24px 0 -10px; }
   #home h2 {
