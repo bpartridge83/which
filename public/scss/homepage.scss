@@ -1,10 +1,12 @@
 #home {
 
 	text-align: center;
-	background: url(../img/body-bg.jpg) center bottom no-repeat #414661;
+	background: url(../img/body-bg.jpg) center bottom no-repeat transparent;
 	background-size: 100% auto;
 	
 	#header {
+	
+		background-color: #3e4d68;
 	
 		img {
 			margin: 24px 0 -10px;
