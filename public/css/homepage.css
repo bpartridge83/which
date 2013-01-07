@@ -1,6 +1,6 @@
 #home {
   text-align: center;
-  background: url(../img/body-bg.jpg) center bottom no-repeat transparent;
+  background: url(../img/body-bg.jpg) center bottom no-repeat #414661;
   background-size: 100% auto; }
   #home #header img {
     margin: 24px 0 -10px; }
