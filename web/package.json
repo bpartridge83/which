@@ -1,0 +1,14 @@
+{
+  "name": "which-io",
+  "version": "0.0.1",
+  "dependencies": {
+    "express": "3.0.x",
+    "twig": "",
+    "optimist": "0.3.x",
+    "passport": "0.2.x"
+  },
+  "engines": {
+    "node": "0.8.x",
+    "npm": "1.1.x"
+  }
+}
