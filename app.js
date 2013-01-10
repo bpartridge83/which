@@ -6,13 +6,13 @@ switch (true) {
 	case argv.web:
 		console.log('Launching Web Application');
 		app.set('site', 'web');
-		app = require('./web/app.js')(app);
+		app = require('./web/app.js')(app, express, argv);
 		break;
 	case argv.api:
 	default:
 		console.log('Launching API Application');
 		app.set('site', 'api');
-		app = require('./api/app.js')(app);
+		app = require('./api/app.js')(app, express, argv);
 		break;
 }
 	

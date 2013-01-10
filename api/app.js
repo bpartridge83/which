@@ -1,6 +1,6 @@
 // which.io api
 
-var app = function (app) {
+var app = function (app, express, argv) {
 	
 	app.get('/status', function (req, res) {
 		return res.send({
