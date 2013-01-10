@@ -22,14 +22,11 @@ app.configure(function () {
 });
 
 app.get('/*', function(req, res, next) {
-	/*
 	if (req.headers.host.match(/^www/) !== null ) {
-		res.redirect('http://' + req.headers.host.replace(/^www\./, '') + req.url);
+		return res.redirect('http://' + req.headers.host.replace(/^www\./, '') + req.url);
 	} else {
-		next();     
+		return next();     
  	}
-	*/
-	next();
 });
 
 app.get('/', function(req, res) {
