@@ -3,16 +3,16 @@ var express = require('express'),
 	argv = require('optimist').argv;
 
 switch (true) {
-	case argv.api:
-		console.log('Launching API Application');
-		app.set('site', 'api');
-		app = require('./api/app.js')(app);
-		break;
 	case argv.web:
-	default:
 		console.log('Launching Web Application');
 		app.set('site', 'web');
 		app = require('./web/app.js')(app);
+		break;
+	case argv.api:
+	default:
+		console.log('Launching API Application');
+		app.set('site', 'api');
+		app = require('./api/app.js')(app);
 		break;
 }
 	
