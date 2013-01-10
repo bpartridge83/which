@@ -5,7 +5,8 @@ var app = function (app) {
 	app.get('/status', function (req, res) {
 		return res.send({
 			status: 'running',
-			environment: 'api'
+			environment: 'api',
+			version: '0.0.1-3'
 		});
 	});
 	
