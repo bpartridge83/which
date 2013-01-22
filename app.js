@@ -1,8 +1,7 @@
 var express = require('express'),
 	app = express(),
-	argv = require('optimist').argv,
-	conf = require('./common/configuration');
-
+	argv = require('optimist').argv;
+	
 switch (true) {
 	case argv.web:
 		console.log('Launching Web Application');
@@ -17,12 +16,14 @@ switch (true) {
 		break;
 }
 	
-var port = argv.port || process.env.PORT || 5000;
-
-app.get('/env', function (req, res) {
-	console.log(conf);
-	res.send(conf.env);
+app.get('/status', function (req, res) {
+	return res.send({
+		status: 'running',
+		environment: process.env.NODE_ENV
+	});
 });
+	
+var port = argv.port || process.env.PORT || 5000;
 
 app.listen(port, function () {
 	console.log('Listening on Port ' + port);

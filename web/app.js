@@ -2,8 +2,13 @@
 
 var app = function (app, express, argv) {
 	
-	var cons = require('consolidate'),
-		swig = require('swig');
+	var conf = require('../common/configuration'),
+		cons = require('consolidate'),
+		swig = require('swig'),
+		mongo = require('mongoskin'),
+		db = mongo.db(conf.db),
+		model = require('../common/models')(db),
+		repo = require('../common/repositories')(db, model);
 		
 	var routes = [];
 	
@@ -45,6 +50,38 @@ var app = function (app, express, argv) {
 		res.render('index');
 	});
 	
+	app.get('/db', function (req, res) {
+		
+		//db.collection('user').drop(function () {
+			
+			var user = new model.User();
+
+			user.set('firstName', 'Awesome');
+			user.set('lastName', 'Partridge');
+
+			user.save(function (data) {
+
+				user.set('lastName', 'McNice');
+				user.save(function (data) {
+
+					repo.user.find({ 'firstName': 'Awesome' }, function (user) {
+
+						user.set('address', '33 Rock Harbor Lane');
+
+						user.save(function () {
+							res.send(user.toJSON());
+						});
+
+					});
+
+				});
+
+			});
+			
+		//});
+		
+	});
+	
 	app.get('/swig', function (req, res) {
 
 		return res.render('swig', {
@@ -55,14 +92,7 @@ var app = function (app, express, argv) {
 		});
 		
 	});
-	
-	app.get('/status', function (req, res) {
-		return res.send({
-			status: 'running',
-			environment: 'web'
-		});
-	});
-	
+
 	return app;
 	
 }
