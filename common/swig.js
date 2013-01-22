@@ -4,7 +4,6 @@ var helpers = require('swig/lib/helpers');
  * {% spaceless %}
  * Removes all whitespace from source code output
  */ 
-/*
 exports.spaceless = function (indent, parser) {
 	
 	var _output = '';
@@ -23,7 +22,6 @@ exports.spaceless = function (indent, parser) {
 };
 
 exports.spaceless.ends = true;
-*/
 
 
 /*

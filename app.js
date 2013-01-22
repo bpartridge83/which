@@ -1,6 +1,7 @@
 var express = require('express'),
 	app = express(),
-	argv = require('optimist').argv;
+	argv = require('optimist').argv,
+	conf = require('./common/configuration');
 
 switch (true) {
 	case argv.web:
@@ -17,7 +18,12 @@ switch (true) {
 }
 	
 var port = argv.port || process.env.PORT || 5000;
-		
+
+app.get('/env', function (req, res) {
+	console.log(conf);
+	res.send(conf.env);
+});
+
 app.listen(port, function () {
 	console.log('Listening on Port ' + port);
 });
