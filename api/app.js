@@ -21,13 +21,13 @@ var app = function (app, express, argv) {
 		var time = new Date().getTime();
 	
 		var user = new model.User({
-			username: req.body.username,
-			password: bcrypt.hashSync(req.body.password),
-			token: md5(req.body.username + time)
+			username: req.query.username,
+			password: bcrypt.hashSync(req.query.password),
+			token: md5(req.query.username + time)
 		});
 		
-		console.log(req.body.username);
-		console.log(req.body.password);
+		console.log(req.query.username);
+		console.log(req.query.password);
 		
 		user.save(function () {
 			return res.send(user.toJSON());
