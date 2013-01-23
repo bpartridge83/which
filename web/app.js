@@ -9,7 +9,8 @@ var app = function (app, express, argv) {
 		mongo = require('mongoskin'),
 		db = mongo.db(conf.db),
 		model = require('../common/models')(db),
-		repo = require('../common/repositories')(db, model);
+		repo = require('../common/repositories')(db, model),
+		MemStore = express.session.MemoryStore;
 		
 	var auth = function (req, res, next) {
 		console.log('auth!');
@@ -52,10 +53,17 @@ var app = function (app, express, argv) {
 		app.use(express.compress());
 
 		app.use(express.cookieParser());
-		app.use(express.session({ secret: 'test' }));
+		app.use(express.session({ secret: 'which.io' }));
 		app.use(express.bodyParser());
 		app.use(express.csrf());
 		
+		app.use(express.session({
+			secret: 'secret_key',
+			store: MemStore({
+				reapInterval: 60000 * 10
+			})
+		}));
+				
 		app.engine('.html.twig', cons.swig);
 		app.set('view engine', 'html.twig');
 		app.set('views', __dirname + '/../views');
@@ -67,10 +75,18 @@ var app = function (app, express, argv) {
 	});
 	
 	app.get('/', function (req, res) {	
+		
+		req.session.user = 12356;
+		
+		console.log(req.session.user);
+		
 		res.render('index');
 	});
 	
 	app.get('/signup', csrf, function (req, res) {
+		
+		console.log(req.session.user);
+		
 		res.render('signup');
 	});
 		
