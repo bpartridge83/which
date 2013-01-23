@@ -14,7 +14,7 @@ var app = function (app, express, argv) {
 		app.use(express.static(__dirname + '/../public'));
 	});
 	
-	api.get('/user/create', function (req, res) {
+	app.get('/user/create', function (req, res) {
 	
 		var time = new Date().getTime();
 	
