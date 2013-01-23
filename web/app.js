@@ -112,41 +112,6 @@ var app = function (app, express, argv) {
 		});
 		
 	});
-		
-		
-		//db.collection('user').drop(function () {
-			
-		/*
-		
-			var user = new model.User();
-
-			user.set('firstName', 'Awesome');
-			user.set('lastName', 'Partridge');
-
-			user.save(function (data) {
-
-				user.set('lastName', 'McNice');
-				user.save(function (data) {
-
-					repo.user.find({ 'firstName': 'Awesome' }, function (user) {
-
-						user.set('address', '33 Rock Harbor Lane');
-
-						user.save(function () {
-							res.send(user.toJSON());
-						});
-
-					});
-
-				});
-
-			});
-		*/
-			
-			
-		//});
-		
-	//});
 	
 	app.get('/swig', function (req, res) {
 

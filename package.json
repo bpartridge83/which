@@ -24,6 +24,6 @@
     "api.which.io"
   ],
   "scripts": {
-    "start": "NODE_ENV=production node app.js"
+    "start": "node app.js"
   }
 }
