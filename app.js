@@ -22,7 +22,7 @@ app.get('/status', function (req, res) {
 	
 	return res.send({
 		status: 'running',
-		environment: 'api',
+		environment: app.get('site'),
 		version: pjson.version
 	});
 	
