@@ -17,10 +17,15 @@ switch (true) {
 }
 	
 app.get('/status', function (req, res) {
+	
+	var pjson = require('./package.json');
+	
 	return res.send({
 		status: 'running',
-		environment: process.env.NODE_ENV
+		environment: 'api',
+		version: pjson.version
 	});
+	
 });
 	
 var port = argv.port || process.env.PORT || 5000;
