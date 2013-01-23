@@ -6,14 +6,14 @@
     "consolidate": "0.7.x",
     "swig": "0.13.x",
     "optimist": "0.3.x",
-    "passport": "0.1.x",
     "mongoskin": "0.5.x",
     "MD5": "1.0.x",
     "numeral": "1.4.x",
     "gaussian": "1.0.x",
     "underscore": "1.4.x",
     "backbone": "0.9.x",
-    "forever": "0.10.x"
+    "forever": "0.10.x",
+    "bcrypt-nodejs": "0.0.x"
   },
   "engines": {
     "node": "0.8.x",

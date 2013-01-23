@@ -12,7 +12,7 @@ module.exports = function (db, model) {
 			
 		},
 		
-		find: function (params, callback) {
+		findOne: function (params, callback) {
 			
 			db.collection(this.collection).find(params).toArray(function (error, data) {
 				var user = new model.User(data[0]);

@@ -5,10 +5,21 @@ var app = function (app, express, argv) {
 	var conf = require('../common/configuration'),
 		cons = require('consolidate'),
 		swig = require('swig'),
+		bcrypt = require('bcrypt-nodejs'),
 		mongo = require('mongoskin'),
 		db = mongo.db(conf.db),
 		model = require('../common/models')(db),
 		repo = require('../common/repositories')(db, model);
+		
+	var auth = function (req, res, next) {
+		console.log('auth!');
+		next();
+	}
+	
+	function csrf(req, res, next) {
+		res.locals.token = req.session._csrf;
+		next();
+	}
 		
 	var routes = [];
 	
@@ -26,23 +37,32 @@ var app = function (app, express, argv) {
 	swig.init({
 	    root: __dirname + '/../views',
 	    allowErrors: true, // allows errors to be thrown and caught by express instead of suppressed by Swig,
-		tags: require('../common/swig'),
-		extensions: {
-			path: path
-		}
+		tags: require('../common/swig')
 	});
+	
+	/*
+	extensions: {
+		path: path
+	}
+	
+	*/
 	
 	app.configure(function () {
 
-		app.use(express.favicon(__dirname + '/../public/favicon.ico', {maxAge: 86400000}));
-	    app.use(express.static(__dirname + '/../public'));
+		app.use(express.compress());
+
+		app.use(express.cookieParser());
+		app.use(express.session({ secret: 'test' }));
 		app.use(express.bodyParser());
+		app.use(express.csrf());
 		
 		app.engine('.html.twig', cons.swig);
 		app.set('view engine', 'html.twig');
 		app.set('views', __dirname + '/../views');
-		
 	    app.set("view options", { layout: false });
+	
+		app.use(express.favicon(__dirname + '/../public/favicon.ico', {maxAge: 86400000}));
+	    app.use(express.static(__dirname + '/../public'));
 
 	});
 	
@@ -50,10 +70,54 @@ var app = function (app, express, argv) {
 		res.render('index');
 	});
 	
-	app.get('/db', function (req, res) {
+	app.get('/signup', csrf, function (req, res) {
+		res.render('signup');
+	});
+		
+	app.post('/signup', csrf, function (req, res) {
+		
+		var user = new model.User({
+			username: req.body.username,
+			password: bcrypt.hashSync(req.body.password)
+		});
+		
+		user.save(function () {
+			return res.redirect('/login');
+		});
+		
+	});
+	
+	app.get('/login', csrf, function (req, res) {
+		res.render('login');
+	});
+		
+	app.post('/login', csrf, function (req, res) {
+		
+		var user = repo.user.findOne({ username: req.body.username }, function (user) {
+			
+			if (!user) {
+				return res.redirect('/login');
+			}
+			
+			bcrypt.compare(req.body.password, user.get('password'), function(err, match) {
+			    
+				if (match) {
+					return res.redirect('/');
+				} else {
+					return res.redirect('/login');
+				}
+			
+			});
+			
+		});
+		
+	});
+		
 		
 		//db.collection('user').drop(function () {
 			
+		/*
+		
 			var user = new model.User();
 
 			user.set('firstName', 'Awesome');
@@ -77,10 +141,12 @@ var app = function (app, express, argv) {
 				});
 
 			});
+		*/
+			
 			
 		//});
 		
-	});
+	//});
 	
 	app.get('/swig', function (req, res) {
 

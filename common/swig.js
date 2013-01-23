@@ -28,6 +28,7 @@ exports.spaceless.ends = true;
  * {{ path route params }}
  * Renders the path of a named route
  */ 
+/*
 exports.path = function (indent, parser) {
 	
 	var myArg = parser.parseVariable(this.args[0]),
@@ -40,3 +41,4 @@ exports.path = function (indent, parser) {
     return output.join('');
 	
 };
+*/
