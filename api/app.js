@@ -2,14 +2,32 @@
 
 var app = function (app, express, argv) {
 	
-	var conf = require('../common/configuration'),
-		bcrypt = require('bcrypt-nodejs'),
-		mongo = require('mongoskin'),
-		db = mongo.db(conf.db),
-		md5 = require('MD5'),
-		model = require('../common/models')(db),
-		repo = require('../common/repositories')(db, model);
+	var _ = require('underscore'),
+		app = _.extend(app, { '_': _ });
 	
+	app = _.extend(app, {
+		conf: require('../common/configuration'),
+		bcrypt: require('bcrypt-nodejs'),
+		md5: require('MD5')
+	});
+		
+	var cons = require('consolidate'),
+		swig = require('swig'),
+		mongo = require('mongoskin'),
+		MemStore = express.session.MemoryStore;
+		
+	app = _.extend(app, {
+		db: mongo.db(app.conf.db)
+	});
+	
+	app = _.extend(app, {
+		model: require('../common/models')(app)
+	});
+
+	app = _.extend(app, {
+		repo: require('../common/repositories')(app)
+	});
+		
 	app.configure(function () {	
 		app.use(express.compress());
 		app.use(express.bodyParser());

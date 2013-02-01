@@ -24,22 +24,22 @@ module.exports = (function () {
 		
 	}
 	
-	var string = '';
+	this.string = '';
 	
 	if (this.username && this.password) {
-		string += this.username + ':' + this.password + '@';
+		this.string += this.username + ':' + this.password + '@';
 	}
 	
-	string += this.host;
+	this.string += this.host;
 	
 	if (this.port) {
-		string += ':' + this.port;
+		this.string += ':' + this.port;
 	}
 	
 	if (this.database) {
-		string += '/' + this.database;
+		this.string += '/' + this.database;
 	}
 	
-	return string;
+	return this;
 	
 })();

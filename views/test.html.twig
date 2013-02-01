@@ -1,0 +1,16 @@
+{% extends 'layout/base.html.twig' %}
+
+{% block title %}which.io - Test{% endblock %}
+{% block html_id %}test{% endblock %}
+
+{% block body %}
+
+{{ test.options|length }}
+
+{% for option in test.options %}
+
+	{{ option.slug }}, 
+
+{% endfor %}
+
+{% endblock %}

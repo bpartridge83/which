@@ -2,19 +2,43 @@
 
 var app = function (app, express, argv) {
 	
-	var conf = require('../common/configuration'),
-		cons = require('consolidate'),
+	var _ = require('underscore'),
+		app = _.extend(app, { '_': _ });
+	
+	app = _.extend(app, {
+		conf: require('../common/configuration'),
+		bcrypt: require('bcrypt-nodejs'),
+		md5: require('MD5')
+	});
+		
+	var cons = require('consolidate'),
 		swig = require('swig'),
-		bcrypt = require('bcrypt-nodejs'),
 		mongo = require('mongoskin'),
-		db = mongo.db(conf.db),
-		model = require('../common/models')(db),
-		repo = require('../common/repositories')(db, model),
 		MemStore = express.session.MemoryStore;
 		
+	app = _.extend(app, {
+		db: mongo.db(app.conf.db.string)
+	});
+	
+	app = _.extend(app, {
+		model: require('../common/models')(app)
+	});
+
+	app = _.extend(app, {
+		repo: require('../common/repositories')(app)
+	});
+	
+	var ObjectId = app.db.ObjectID.createFromHexString,
+		DBRef = app.db.bson_serializer.DBRef;
+		
 	var auth = function (req, res, next) {
-		console.log('auth!');
+		
+		if (!req.session.user) {
+			return res.redirect('/login');
+		}
+		
 		next();
+		
 	}
 	
 	function csrf(req, res, next) {
@@ -28,6 +52,11 @@ var app = function (app, express, argv) {
 		render: function (routes) {
 			console.log('in path!');
 		}
+	}
+	
+	function name (req, res, next) {
+		console.log('something');
+		next();
 	}
 	
 	routes.push({
@@ -74,31 +103,31 @@ var app = function (app, express, argv) {
 
 	});
 	
-	app.get('/', function (req, res) {	
-		
-		req.session.user = 12356;
-		
-		console.log(req.session.user);
-		
+	app.get('/', name, function (req, res) {	
 		res.render('index');
 	});
 	
 	app.get('/signup', csrf, function (req, res) {
-		
-		console.log(req.session.user);
-		
 		res.render('signup');
 	});
 		
 	app.post('/signup', csrf, function (req, res) {
 		
-		var user = new model.User({
-			username: req.body.username,
-			password: bcrypt.hashSync(req.body.password)
+		var user = new app.model.User({
+			email: req.body.email,
+			password: app.bcrypt.hashSync(req.body.password)
 		});
 		
-		user.save(function () {
-			return res.redirect('/login');
+		console.log(user);
+		
+		user.save(function (model) {
+			
+			
+			req.session.user = model.id;
+			return res.redirect('/dashboard');
+		}, function () {
+			
+			return res.send('failed: user already exists!');
 		});
 		
 	});
@@ -109,37 +138,109 @@ var app = function (app, express, argv) {
 		
 	app.post('/login', csrf, function (req, res) {
 		
-		var user = repo.user.findOne({ username: req.body.username }, function (user) {
+		var user = app.repo.user.findOne({ email: req.body.email }, function (user) {
 			
 			if (!user) {
 				return res.redirect('/login');
 			}
 			
-			bcrypt.compare(req.body.password, user.get('password'), function(err, match) {
-			    
+			app.bcrypt.compare(req.body.password, user.get('password'), function(err, match) {
+				
 				if (match) {
-					return res.redirect('/');
-				} else {
-					return res.redirect('/login');
+					req.session.user = user.id;
+					return res.redirect('/dashboard');
 				}
-			
+				
+				return res.redirect('/login');
+				
 			});
 			
 		});
 		
 	});
 	
-	app.get('/swig', function (req, res) {
-
-		return res.render('swig', {
-			name: {
-				first: 'Brian',
-				last: 'Partridge'
-			}
+	app.get('/logout', function (req, res) {
+		req.session.user = null;
+		return res.redirect('/login');
+	});
+	
+	app.get('/dashboard', auth, csrf, function (req, res) {
+	
+		res.render('dashboard');
+		
+	});
+	
+	app.get('/tests', function (req, res) {
+	
+		app.repo.test.find({ user: ObjectId('510b5da5b01145a61d000001') }, function (tests) {
+			
+			console.log(tests.length);
+			
+			res.send(tests);
+			
 		});
 		
 	});
-
+	
+	app.get('/test/create', function (req, res) {
+	
+		console.log('');
+		console.log('');
+	
+		var test = new app.model.Test({
+			slug: 'test-agent-'+Math.floor(Math.random() + 1001),
+			useBest: 90,
+			user: ObjectId('510b5da5b01145a61d000003'),
+			options: [
+				{
+					slug: 'a',
+					views: 0,
+					success: 0,
+					pScore: null
+				},
+				{
+					slug: 'b',
+					views: 0,
+					success: 0,
+					pScore: null
+				},
+				{
+					slug: 'c',
+					views: 0,
+					success: 0,
+					pScore: null
+				}
+			]
+		});
+		
+		test.save(function (test) {
+			return res.redirect('/test/'+test.id);
+		}, function () {
+			return res.send('error...');
+		});
+				
+	});
+	
+	app.get('/test/:id', function (req, res) {
+	
+		app.repo.test.findOne({ '_id': ObjectId(req.params.id) }, function (test) {
+		
+			res.render('test', {
+				test: test.toJSON()
+			});
+			
+		});
+			
+	});
+	
+	app.get('/users', function (req, res) {
+	
+		app.repo.user.findAll(function (users) {
+			res.send(users);
+		});
+		
+	});
+	
 	return app;
 	
 }
