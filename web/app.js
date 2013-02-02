@@ -25,11 +25,9 @@ var app = function (app, express, argv) {
 	});
 
 	app = _.extend(app, {
-		repo: require('../common/repositories')(app)
+		repo: require('../common/repositories')(app),
+		ObjectId: app.db.ObjectID.createFromHexString,
 	});
-	
-	var ObjectId = app.db.ObjectID.createFromHexString,
-		DBRef = app.db.bson_serializer.DBRef;
 		
 	var auth = function (req, res, next) {
 		
@@ -172,7 +170,7 @@ var app = function (app, express, argv) {
 	
 	app.get('/tests', function (req, res) {
 	
-		app.repo.test.find({ user: ObjectId('510b5da5b01145a61d000001') }, function (tests) {
+		app.repo.test.find({ user: app.ObjectId('510b5da5b01145a61d000001') }, function (tests) {
 			
 			console.log(tests.length);
 			
@@ -190,7 +188,7 @@ var app = function (app, express, argv) {
 		var test = new app.model.Test({
 			slug: 'test-agent-'+Math.floor(Math.random() + 1001),
 			useBest: 90,
-			user: ObjectId('510b5da5b01145a61d000003'),
+			user: app.ObjectId('510b5da5b01145a61d000003'),
 			options: [
 				{
 					slug: 'a',
@@ -223,7 +221,7 @@ var app = function (app, express, argv) {
 	
 	app.get('/test/:id', function (req, res) {
 	
-		app.repo.test.findOne({ '_id': ObjectId(req.params.id) }, function (test) {
+		app.repo.test.findOne({ '_id': app.ObjectId(req.params.id) }, function (test) {
 		
 			res.render('test', {
 				test: test.toJSON()
@@ -231,6 +229,44 @@ var app = function (app, express, argv) {
 			
 		});
 			
+	});
+	
+	app.get('/test/:id/choose', function (req, res) {
+	
+		app.repo.test.findOne({ '_id': app.ObjectId(req.params.id) }, function (test) {
+		
+			res.send(test.choose());
+			
+		});
+		
+	});
+	
+	app.get('/option/:id/reward/:reward', function (req, res) {
+	
+		app.repo.option.findOne({ '_id': app.ObjectId(req.params.id) }, function (option) {
+		
+			option.set('reward', req.params.reward);
+			option.save(function () {
+				
+				app.repo.option.findOne({ '_id': option.get('test') }, function (test) {
+
+					app.db.collection('test').update({
+						'_id': option.get('test')
+					}, {
+						$inc: { 'options.$.success' : 1 },
+						$set: { 'options.$.pScore' : option.pScore(test) }
+					}, {}, function (test) {
+
+						res.send('updated option and test');
+
+					})
+
+				});
+				
+			});
+			
+		});
+		
 	});
 	
 	app.get('/users', function (req, res) {

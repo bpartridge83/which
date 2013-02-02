@@ -134,7 +134,8 @@ module.exports = function (app) {
 				}
 				
 				var option = new app.model.Option({
-					choice: choice.slug
+					choice: choice.slug,
+					test: this.id
 				});
 				
 				option.save(function (option) {
