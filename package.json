@@ -16,7 +16,9 @@
     "bcrypt-nodejs": "0.0.x",
     "node-mandrill": "1.0.x",
     "portscanner": "0.1.x",
-    "connect-mongo": "0.3.x"
+    "connect-mongo": "0.3.x",
+    "iron_mq": "0.1.x",
+    "iron_worker": "0.1.x"
   },
   "engines": {
     "node": "0.8.x",

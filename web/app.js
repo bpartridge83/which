@@ -69,12 +69,6 @@ var app = function (app, express, argv) {
 		tags: require('../common/swig')
 	});
 	
-	/*
-	extensions: {
-		path: path
-	}
-	*/
-	
 	app.configure(function () {
 
 		app.use(express.compress());
@@ -86,13 +80,7 @@ var app = function (app, express, argv) {
 			store: new MongoStore({
 				url: 'mongodb://' + app.conf.db.string + '/session',
 			})
-			/*
-			store: MemStore({
-				reapInterval: 60000 * 10
-			})
-			*/
 		}));
-		
 		
 		app.use(express.bodyParser());
 		app.use(express.csrf());
