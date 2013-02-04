@@ -8,8 +8,6 @@ var app = function (app, express, argv) {
 		winston = require('winston'),
 		app = _.extend(app, { '_': _ }),
 		iron_mq = require('iron_mq');
-		
-	winston.add(winston.transports.File, { filename: 'response.log' });
 	
 	app = _.extend(app, {
 		conf: require('../common/configuration'),
@@ -19,6 +17,20 @@ var app = function (app, express, argv) {
 			token: 'fcylDPOXcdhAbDIGGhvLRcszcN0',
 			project_id: '510f55658e7d141d5200001d'
 		})
+	});
+	
+	require('winston-mongodb').MongoDB;	
+	
+	winston.add(winston.transports.MongoDB, {
+		db: app.conf.db.database,
+		collection: 'log',
+		safe: false,
+		host: app.conf.db.host,
+		port: app.conf.db.port,
+		username: app.conf.db.username,
+		password: app.conf.db.password,
+		errorTimeout: 200,
+		timeout: 200
 	});
 		
 	var cons = require('consolidate'),
@@ -388,7 +400,7 @@ var app = function (app, express, argv) {
 			var count = 0,
 				total = 0;
 
-			app._.each(app._.pluck(results.file, 'time'), function (time) {
+			app._.each(app._.pluck(results.mongodb, 'time'), function (time) {
 				total += time;
 				count += 1;
 			});
@@ -417,7 +429,7 @@ var app = function (app, express, argv) {
 			var count = 0,
 				total = 0;
 
-			app._.each(app._.pluck(results.file, 'time'), function (time) {
+			app._.each(app._.pluck(results.mongodb, 'time'), function (time) {
 				total += time;
 				count += 1;
 			});
@@ -446,7 +458,7 @@ var app = function (app, express, argv) {
 			var count = 0,
 				total = 0;
 
-			app._.each(app._.pluck(results.file, 'time'), function (time) {
+			app._.each(app._.pluck(results.mongodb, 'time'), function (time) {
 				total += time;
 				count += 1;
 			});

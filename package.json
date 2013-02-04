@@ -20,7 +20,7 @@
     "iron_mq": "0.1.x",
 	"node-logentries": "0.0.x",
 	"request": "2.x.x",
-	"time": "0.8.4"
+	"winston-mongodb": "0.4.x"
   },
   "engines": {
     "node": "0.8.x",
