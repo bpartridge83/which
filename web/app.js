@@ -81,10 +81,16 @@ var app = function (app, express, argv) {
 
 		app.use(express.cookieParser());
 		
+		console.log(app.conf.db.database);
+		console.log(app.conf.db.connection);
+		console.log(app.conf.db.port);
+		
 		app.use(express.session({
 			secret: 'secret_key',
 			store: new MongoStore({
-				db: 'which_dev',
+				db: app.conf.db.database,
+				ip: app.conf.db.connection,
+				port: app.conf.db.port,
 				collection: 'session'
 			})
 			/*

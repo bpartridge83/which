@@ -32,6 +32,8 @@ module.exports = (function () {
 	
 	this.string += this.host;
 	
+	this.connection = this.string;
+	
 	if (this.port) {
 		this.string += ':' + this.port;
 	}
