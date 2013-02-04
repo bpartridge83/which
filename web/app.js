@@ -88,7 +88,7 @@ var app = function (app, express, argv) {
 			})
 		}));
 		
-		app.use(express.csrf());
+		//app.use(express.csrf());
 				
 		app.engine('.html.twig', cons.swig);
 		app.set('view engine', 'html.twig');
