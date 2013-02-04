@@ -14,7 +14,7 @@ var app = function (app, express, argv) {
 	var cons = require('consolidate'),
 		swig = require('swig'),
 		mongo = require('mongoskin'),
-		MongoStore = require('express-session-mongo'),
+		MongoStore = require('connect-mongo')(express),
 		MemStore = express.session.MemoryStore;
 		
 	app = _.extend(app, {
@@ -81,17 +81,10 @@ var app = function (app, express, argv) {
 
 		app.use(express.cookieParser());
 		
-		console.log(app.conf.db.database);
-		console.log(app.conf.db.connection);
-		console.log(app.conf.db.port);
-		
 		app.use(express.session({
 			secret: 'secret_key',
 			store: new MongoStore({
-				db: app.conf.db.database,
-				ip: app.conf.db.connection,
-				port: app.conf.db.port,
-				collection: 'session'
+				url: 'mongodb://' + app.conf.db.string + '/session',
 			})
 			/*
 			store: MemStore({
@@ -99,6 +92,7 @@ var app = function (app, express, argv) {
 			})
 			*/
 		}));
+		
 		
 		app.use(express.bodyParser());
 		app.use(express.csrf());

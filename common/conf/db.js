@@ -20,6 +20,8 @@ module.exports = (function () {
 			this.username = 'nodejitsu_which';
 			this.password = 'hrm4632serm93k5n59ag987scs';
 			
+			//mongo -u nodejitsu_which -p hrm4632serm93k5n59ag987scs --host ds043927.mongolab.com --port 43927 nodejitsu_which_nodejitsudb9237950302
+			
 			break;
 		
 	}
@@ -31,8 +33,6 @@ module.exports = (function () {
 	}
 	
 	this.string += this.host;
-	
-	this.connection = this.string;
 	
 	if (this.port) {
 		this.string += ':' + this.port;
