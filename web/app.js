@@ -3,12 +3,17 @@
 var app = function (app, express, argv) {
 	
 	var _ = require('underscore'),
-		app = _.extend(app, { '_': _ });
+		app = _.extend(app, { '_': _ }),
+		iron_mq = require('iron_mq');
 	
 	app = _.extend(app, {
 		conf: require('../common/configuration'),
 		bcrypt: require('bcrypt-nodejs'),
-		md5: require('MD5')
+		md5: require('MD5'),
+		mq: new iron_mq.Client({
+			token: 'fcylDPOXcdhAbDIGGhvLRcszcN0',
+			project_id: '510f55658e7d141d5200001d'
+		})
 	});
 		
 	var cons = require('consolidate'),
@@ -255,6 +260,66 @@ var app = function (app, express, argv) {
 				
 			});
 			
+		});
+		
+	});
+	
+	app.get('/ironmq/get', function (req, res) {
+		
+		app.mq.queue('options').get({}, function (error, body) {
+			
+			console.log(body);
+			
+			if (body && body.body !== '') {
+				
+				try {
+					// handle JSON option here
+					console.log(JSON.parse(body.body))
+				} catch (e) {
+					console.log('error in parsing body!');
+				}
+ 				
+				app.mq.queue('options').del(body.id, function (error, body) {
+
+					console.log(body);
+					res.send('awesome, deleted message');
+
+				});
+				
+			} else {
+				
+				res.send('no message found');
+				
+			}
+			
+		});
+		
+	});
+	
+	app.get('/ironmq/post', function (req, res) {
+	
+		var obj = {
+			'testing-json': 5
+		};
+	
+		app.mq.queue('options').post(JSON.stringify(obj), function (error, body) {
+			
+			console.log(body);
+			res.send('awesome.');
+			
+		});
+		
+	});
+	
+	app.post('/_mq/option', function (req, res) {
+	
+		console.log(req.body);
+		
+		app.mq.queue('options').del(body.id, function (error, body) {
+
+			console.log(body);
+			res.send('awesome, deleted message');
+
 		});
 		
 	});
