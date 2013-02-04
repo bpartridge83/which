@@ -46,6 +46,7 @@ var app = function (app, express, argv) {
 	}
 	
 	function csrf(req, res, next) {
+		app.use(express.csrf());
 		res.locals.token = req.session._csrf;
 		next();
 	}
