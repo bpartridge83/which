@@ -78,8 +78,9 @@ var app = function (app, express, argv) {
 
 		app.use(express.compress());
 
-		//app.use(express.cookieParser());
-		
+		app.use(express.bodyParser());
+		app.use(express.cookieParser());
+
 		app.use(express.session({
 			secret: 'secret_key',
 			store: new MongoStore({
@@ -87,7 +88,6 @@ var app = function (app, express, argv) {
 			})
 		}));
 		
-		app.use(express.bodyParser());
 		app.use(express.csrf());
 				
 		app.engine('.html.twig', cons.swig);
