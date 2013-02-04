@@ -28,8 +28,14 @@ app.get('/status', function (req, res) {
 	
 });
 	
-var port = argv.port || process.env.PORT || 5000;
+var portscanner = require('portscanner');
 
-app.listen(port, function () {
-	console.log('Listening on Port ' + port);
+portscanner.findAPortNotInUse(5000, 5020, 'localhost', function(error, _port) {
+
+	var port = argv.port || process.env.PORT || _port;
+
+	app.listen(port, function () {
+		console.log('Listening on Port ' + port);
+	});
+
 });

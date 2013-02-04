@@ -14,6 +14,7 @@ var app = function (app, express, argv) {
 	var cons = require('consolidate'),
 		swig = require('swig'),
 		mongo = require('mongoskin'),
+		MongoStore = require('express-session-mongo'),
 		MemStore = express.session.MemoryStore;
 		
 	app = _.extend(app, {
@@ -72,7 +73,6 @@ var app = function (app, express, argv) {
 	extensions: {
 		path: path
 	}
-	
 	*/
 	
 	app.configure(function () {
@@ -80,16 +80,22 @@ var app = function (app, express, argv) {
 		app.use(express.compress());
 
 		app.use(express.cookieParser());
-		app.use(express.session({ secret: 'which.io' }));
-		app.use(express.bodyParser());
-		app.use(express.csrf());
 		
 		app.use(express.session({
 			secret: 'secret_key',
+			store: new MongoStore({
+				db: 'which_dev',
+				collection: 'session'
+			})
+			/*
 			store: MemStore({
 				reapInterval: 60000 * 10
 			})
+			*/
 		}));
+		
+		app.use(express.bodyParser());
+		app.use(express.csrf());
 				
 		app.engine('.html.twig', cons.swig);
 		app.set('view engine', 'html.twig');
@@ -119,8 +125,6 @@ var app = function (app, express, argv) {
 		console.log(user);
 		
 		user.save(function (model) {
-			
-			
 			req.session.user = model.id;
 			return res.redirect('/dashboard');
 		}, function () {
@@ -163,9 +167,7 @@ var app = function (app, express, argv) {
 	});
 	
 	app.get('/dashboard', auth, csrf, function (req, res) {
-	
 		res.render('dashboard');
-		
 	});
 	
 	app.get('/tests', function (req, res) {
