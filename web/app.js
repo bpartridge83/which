@@ -317,10 +317,13 @@ var app = function (app, express, argv) {
 		
 		app.mq.queue('options').get({}, function (error, body) {
 		
+			console.log('handle message here!');
 			console.log(body);
+			console.log('finished handling message, time to delete.');
 		
 			app.mq.queue('options').del(req.get('iron-message-id'), function (error, body) {
 			
+				console.log('deleted!');
 				res.send('deleted!');
 				
 			});
