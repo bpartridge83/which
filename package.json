@@ -18,7 +18,9 @@
     "portscanner": "0.1.x",
     "connect-mongo": "0.3.x",
     "iron_mq": "0.1.x",
-    "iron_worker": "0.1.x"
+	"node-logentries": "0.0.x",
+	"request": "2.x.x",
+	"time": "0.8.4"
   },
   "engines": {
     "node": "0.8.x",

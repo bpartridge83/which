@@ -2,9 +2,14 @@
 
 var app = function (app, express, argv) {
 	
-	var _ = require('underscore'),
+	var perfTime = require('perf-time'),
+		perftime = new perfTime(),
+		_ = require('underscore'),
+		winston = require('winston'),
 		app = _.extend(app, { '_': _ }),
 		iron_mq = require('iron_mq');
+		
+	winston.add(winston.transports.File, { filename: 'response.log' });
 	
 	app = _.extend(app, {
 		conf: require('../common/configuration'),
@@ -64,6 +69,31 @@ var app = function (app, express, argv) {
 		next();
 	}
 	
+	function time_start (req, res, next) {
+		app = _.extend(app, {
+			time_start: perftime.get()
+		});
+		next();
+	}
+	
+	function time_end (req, res, next) {
+		
+		if (req.route !== 'undefined') {
+			res.on('finish', function () {
+				if (!res.get('ignore')) {
+					var time_end = perftime.get();
+					winston.info('response', {
+						time: (time_end - app.time_start),
+						path: req.route.path
+					});
+				}
+			});
+		}
+		
+		next();
+		
+	}
+	
 	routes.push({
 		name: 'awesomesauce',
 		url: '/google/nice'
@@ -77,6 +107,12 @@ var app = function (app, express, argv) {
 	
 	app.configure(function () {
 
+		app.use(express.favicon(__dirname + '/../public/favicon.ico', {maxAge: 86400000}));
+	    app.use(express.static(__dirname + '/../public'));
+
+		app.use(time_start);
+		app.use(time_end);
+
 		app.use(express.compress());
 
 		app.use(express.bodyParser());
@@ -88,16 +124,11 @@ var app = function (app, express, argv) {
 				url: 'mongodb://' + app.conf.db.string + '/session',
 			})
 		}));
-		
-		//app.use(express.csrf());
 				
 		app.engine('.html.twig', cons.swig);
 		app.set('view engine', 'html.twig');
 		app.set('views', __dirname + '/../views');
 	    app.set("view options", { layout: false });
-	
-		app.use(express.favicon(__dirname + '/../public/favicon.ico', {maxAge: 86400000}));
-	    app.use(express.static(__dirname + '/../public'));
 
 	});
 	
@@ -336,6 +367,36 @@ var app = function (app, express, argv) {
 		app.repo.user.findAll(function (users) {
 			res.send(users);
 		});
+		
+	});
+	
+	app.get('/response', function (req, res) {
+	
+		res.set('ignore', true);
+	
+		var options = {
+			from: new Date - 24 * 60 * 60 * 1000,
+			until: new Date
+		};
+
+		winston.query(options, function (err, results) {
+
+			if (err) {
+				throw err;
+			}
+
+			var count = 0,
+				total = 0;
+
+			app._.each(app._.pluck(results.file, 'time'), function (time) {
+				total += time;
+				count += 1;
+			});
+
+			res.send('Average Response Time: ' + (total / count) + 'ms');
+			
+		});
+		
 		
 	});
 	
