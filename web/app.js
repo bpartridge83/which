@@ -315,12 +315,14 @@ var app = function (app, express, argv) {
 	
 		console.log(req.body);
 		
+		/*
 		app.mq.queue('options').del(body.id, function (error, body) {
 
 			console.log(body);
 			res.send('awesome, deleted message');
 
 		});
+		*/
 		
 	});
 	
