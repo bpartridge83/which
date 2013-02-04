@@ -312,21 +312,13 @@ var app = function (app, express, argv) {
 		});
 		
 	});
-	
-	app.get('/_mq/option', function (req, res) {
-	
-		console.log('this is a message here...');
-	
-		res.send('something');
 		
-	});
-	
 	app.post('/_mq/option', function (req, res) {
 	
 		console.log('trying to consume body here...');
 	
 		console.log(req.body);
-		console.log(req);
+		console.log(req.headers);
 		
 		console.log('here, after body.');
 		
