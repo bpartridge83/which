@@ -393,10 +393,67 @@ var app = function (app, express, argv) {
 				count += 1;
 			});
 
-			res.send('Average Response Time: ' + (total / count) + 'ms');
+			res.send((Math.round((total / count) * 100) / 100) + '');
 			
 		});
 		
+	});
+	
+	app.get('/response/hour', function (req, res) {
+	
+		res.set('ignore', true);
+	
+		var options = {
+			from: new Date - 60 * 60 * 1000,
+			until: new Date
+		};
+
+		winston.query(options, function (err, results) {
+
+			if (err) {
+				throw err;
+			}
+
+			var count = 0,
+				total = 0;
+
+			app._.each(app._.pluck(results.file, 'time'), function (time) {
+				total += time;
+				count += 1;
+			});
+
+			res.send((Math.round((total / count) * 100) / 100) + '');
+			
+		});
+		
+	});
+	
+	app.get('/response/minute', function (req, res) {
+	
+		res.set('ignore', true);
+	
+		var options = {
+			from: new Date - 60 * 1000,
+			until: new Date
+		};
+
+		winston.query(options, function (err, results) {
+
+			if (err) {
+				throw err;
+			}
+
+			var count = 0,
+				total = 0;
+
+			app._.each(app._.pluck(results.file, 'time'), function (time) {
+				total += time;
+				count += 1;
+			});
+
+			res.send((Math.round((total / count) * 100) / 100) + '');
+			
+		});
 		
 	});
 	
