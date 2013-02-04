@@ -314,24 +314,18 @@ var app = function (app, express, argv) {
 	});
 		
 	app.post('/_mq/option', function (req, res) {
-	
-		console.log('trying to consume body here...');
-	
-		console.log(req.body);
-		console.log(req.headers);
 		
-		console.log('here, after body.');
+		app.mq.queue('options').get({}, function (error, body) {
 		
-		/*
-		app.mq.queue('options').del(body.id, function (error, body) {
-
 			console.log(body);
-			res.send('awesome, deleted message');
-
-		});
-		*/
 		
-		res.send('done');
+			app.mq.queue('options').del(req.get('iron-message-id'), function (error, body) {
+			
+				res.send('deleted!');
+				
+			});
+			
+		});
 		
 	});
 	
