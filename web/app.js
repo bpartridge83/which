@@ -326,6 +326,7 @@ var app = function (app, express, argv) {
 		console.log('trying to consume body here...');
 	
 		console.log(req.body);
+		console.log(req);
 		
 		console.log('here, after body.');
 		
@@ -338,7 +339,7 @@ var app = function (app, express, argv) {
 		});
 		*/
 		
-		res.send('nice.');
+		res.send('done');
 		
 	});
 	
