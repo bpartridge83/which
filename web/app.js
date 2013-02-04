@@ -311,9 +311,21 @@ var app = function (app, express, argv) {
 		
 	});
 	
+	app.get('/_mq/option', function (req, res) {
+	
+		console.log('this is a message here...');
+	
+		res.send('something');
+		
+	});
+	
 	app.post('/_mq/option', function (req, res) {
 	
+		console.log('trying to consume body here...');
+	
 		console.log(req.body);
+		
+		console.log('here, after body.');
 		
 		/*
 		app.mq.queue('options').del(body.id, function (error, body) {
@@ -323,6 +335,8 @@ var app = function (app, express, argv) {
 
 		});
 		*/
+		
+		res.send('nice.');
 		
 	});
 	
