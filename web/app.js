@@ -388,7 +388,8 @@ var app = function (app, express, argv) {
 	
 		var options = {
 			from: new Date - 24 * 60 * 60 * 1000,
-			until: new Date
+			until: new Date,
+			limit: 1000000
 		};
 
 		winston.query(options, function (err, results) {
@@ -396,6 +397,8 @@ var app = function (app, express, argv) {
 			if (err) {
 				throw err;
 			}
+
+			console.log(results.mongodb.length);
 
 			var count = 0,
 				total = 0;
