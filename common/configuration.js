@@ -1,7 +1,13 @@
-var conf = {};
-
-conf.env = (process.env.NODE_ENV == 'development') ? 'development' : 'production';
-
-conf.db = require('./conf/db');
+module.exports = function (app) {
 	
-module.exports = conf;
+	this.env = (process.env.NODE_ENV == 'development') ? 'development' : 'production';
+
+	this.db = require('./conf/db');
+	this.winston = require('./conf/winston')(this.db);
+	
+	return this;
+	
+}
+
+
+	

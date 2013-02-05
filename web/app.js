@@ -6,11 +6,12 @@ var app = function (app, express, argv) {
 		perftime = new perfTime(),
 		_ = require('underscore'),
 		winston = require('winston'),
+		winston_db = require('winston-mongodb').MongoDB,
 		app = _.extend(app, { '_': _ }),
 		iron_mq = require('iron_mq');
 	
 	app = _.extend(app, {
-		conf: require('../common/configuration'),
+		conf: require('../common/configuration')(app),
 		bcrypt: require('bcrypt-nodejs'),
 		md5: require('MD5'),
 		mq: new iron_mq.Client({
@@ -19,20 +20,8 @@ var app = function (app, express, argv) {
 		})
 	});
 	
-	require('winston-mongodb').MongoDB;	
-	
-	winston.add(winston.transports.MongoDB, {
-		db: app.conf.db.database,
-		collection: 'log',
-		safe: false,
-		host: app.conf.db.host,
-		port: app.conf.db.port,
-		username: app.conf.db.username,
-		password: app.conf.db.password,
-		errorTimeout: 200,
-		timeout: 200
-	});
-		
+	winston.add(winston.transports.MongoDB, app.conf.winston);
+			
 	var cons = require('consolidate'),
 		swig = require('swig'),
 		mongo = require('mongoskin'),
@@ -147,83 +136,83 @@ var app = function (app, express, argv) {
 	app.get('/', name, function (req, res) {	
 		res.render('index');
 	});
-	
+
 	app.get('/signup', csrf, function (req, res) {
 		res.render('signup');
 	});
-		
+
 	app.post('/signup', csrf, function (req, res) {
-		
+
 		var user = new app.model.User({
 			email: req.body.email,
 			password: app.bcrypt.hashSync(req.body.password)
 		});
-		
+
 		console.log(user);
-		
+
 		user.save(function (model) {
 			req.session.user = model.id;
 			return res.redirect('/dashboard');
 		}, function () {
-			
+
 			return res.send('failed: user already exists!');
 		});
-		
+
 	});
-	
+
 	app.get('/login', csrf, function (req, res) {
 		res.render('login');
 	});
-		
+
 	app.post('/login', csrf, function (req, res) {
-		
+
 		var user = app.repo.user.findOne({ email: req.body.email }, function (user) {
-			
+
 			if (!user) {
 				return res.redirect('/login');
 			}
-			
+
 			app.bcrypt.compare(req.body.password, user.get('password'), function(err, match) {
-				
+
 				if (match) {
 					req.session.user = user.id;
 					return res.redirect('/dashboard');
 				}
-				
+
 				return res.redirect('/login');
-				
+
 			});
-			
+
 		});
-		
+
 	});
-	
+
 	app.get('/logout', function (req, res) {
 		req.session.user = null;
 		return res.redirect('/login');
 	});
-	
+
 	app.get('/dashboard', auth, csrf, function (req, res) {
 		res.render('dashboard');
 	});
-	
+
 	app.get('/tests', function (req, res) {
-	
+
 		app.repo.test.find({ user: app.ObjectId('510b5da5b01145a61d000001') }, function (tests) {
-			
+
 			console.log(tests.length);
-			
+
 			res.send(tests);
-			
+
 		});
-		
+
 	});
-	
+
 	app.get('/test/create', function (req, res) {
-	
+
 		console.log('');
 		console.log('');
-	
+
 		var test = new app.model.Test({
 			slug: 'test-agent-'+Math.floor(Math.random() + 1001),
 			useBest: 90,
@@ -249,44 +238,44 @@ var app = function (app, express, argv) {
 				}
 			]
 		});
-		
+
 		test.save(function (test) {
 			return res.redirect('/test/'+test.id);
 		}, function () {
 			return res.send('error...');
 		});
-				
+
 	});
-	
+
 	app.get('/test/:id', function (req, res) {
-	
+
 		app.repo.test.findOne({ '_id': app.ObjectId(req.params.id) }, function (test) {
-		
+
 			res.render('test', {
 				test: test.toJSON()
 			});
-			
+
 		});
-			
+
 	});
-	
+
 	app.get('/test/:id/choose', function (req, res) {
-	
+
 		app.repo.test.findOne({ '_id': app.ObjectId(req.params.id) }, function (test) {
-		
+
 			res.send(test.choose());
-			
+
 		});
-		
+
 	});
-	
+
 	app.get('/option/:id/reward/:reward', function (req, res) {
-	
+
 		app.repo.option.findOne({ '_id': app.ObjectId(req.params.id) }, function (option) {
-		
+
 			option.set('reward', req.params.reward);
 			option.save(function () {
-				
+
 				app.repo.option.findOne({ '_id': option.get('test') }, function (test) {
 
 					app.db.collection('test').update({
@@ -301,91 +290,91 @@ var app = function (app, express, argv) {
 					})
 
 				});
-				
+
 			});
-			
+
 		});
-		
+
 	});
-	
+
 	app.get('/ironmq/get', function (req, res) {
-		
+
 		app.mq.queue('options').get({}, function (error, body) {
-			
+
 			console.log(body);
-			
+
 			if (body && body.body !== '') {
-				
+
 				try {
 					// handle JSON option here
 					console.log(JSON.parse(body.body))
 				} catch (e) {
 					console.log('error in parsing body!');
 				}
- 				
+
 				app.mq.queue('options').del(body.id, function (error, body) {
 
 					console.log(body);
 					res.send('awesome, deleted message');
 
 				});
-				
+
 			} else {
-				
+
 				res.send('no message found');
-				
+
 			}
-			
+
 		});
-		
+
 	});
-	
+
 	app.get('/ironmq/post', function (req, res) {
-	
+
 		var obj = {
 			'testing-json': 5
 		};
-	
+
 		app.mq.queue('options').post(JSON.stringify(obj), function (error, body) {
-			
+
 			console.log(body);
 			res.send('awesome.');
-			
+
 		});
-		
+
 	});
-		
+
 	app.post('/_mq/option', function (req, res) {
-		
+
 		app.mq.queue('options').get({}, function (error, body) {
-		
+
 			console.log('handle message here!');
 			console.log(body);
 			console.log('finished handling message, time to delete.');
-		
+
 			app.mq.queue('options').del(req.get('iron-message-id'), function (error, body) {
-			
+
 				console.log('deleted!');
 				res.send('deleted!');
-				
+
 			});
-			
+
 		});
-		
+
 	});
-	
+
 	app.get('/users', function (req, res) {
-	
+
 		app.repo.user.findAll(function (users) {
 			res.send(users);
 		});
-		
+
 	});
-	
+
 	app.get('/response', function (req, res) {
-	
+
 		res.set('ignore', true);
-	
+
 		var options = {
 			from: new Date - 24 * 60 * 60 * 1000,
 			until: new Date,
@@ -409,15 +398,15 @@ var app = function (app, express, argv) {
 			});
 
 			res.send((Math.round((total / count) * 100) / 100) + '');
-			
+
 		});
-		
+
 	});
-	
+
 	app.get('/response/hour', function (req, res) {
-	
+
 		res.set('ignore', true);
-	
+
 		var options = {
 			from: new Date - 60 * 60 * 1000,
 			until: new Date
@@ -438,15 +427,15 @@ var app = function (app, express, argv) {
 			});
 
 			res.send((Math.round((total / count) * 100) / 100) + '');
-			
+
 		});
-		
+
 	});
-	
+
 	app.get('/response/minute', function (req, res) {
-	
+
 		res.set('ignore', true);
-	
+
 		var options = {
 			from: new Date - 60 * 1000,
 			until: new Date
@@ -467,11 +456,72 @@ var app = function (app, express, argv) {
 			});
 
 			res.send((Math.round((total / count) * 100) / 100) + '');
+
+		});
+
+	});
+		
+	app.get('/response/route', function (req, res) {
+	
+		res.set('ignore', true);
+
+		var options = {
+			from: new Date - 30 * 24 * 60 * 60 * 1000,
+			until: new Date,
+			limit: 1000000
+		};
+
+		winston.query(options, function (err, results) {
+
+			if (err) {
+				throw err;
+			}
+
+			var tmp_routes = app._.uniq(app._.pluck(results.mongodb, 'path'));
 			
+			var _routes = {};
+			
+			app._.each(tmp_routes, function (route) {
+			
+				console.log(route);
+			
+				_routes[route] = {
+					count: 0,
+					total: 0
+				}
+				
+			});
+			
+			app._.each(results.mongodb, function (result) {
+				_routes[result.path].total += result.time;
+				_routes[result.path].count += 1;
+			});
+			
+			app._.each(app._.keys(_routes), function (path) {
+				console.log(path);
+				_routes[path].avg = _routes[path].total / _routes[path].count;
+			});
+
+			res.send(_routes);
+
 		});
 		
 	});
+
+	app.get('/exec', function () {
 	
+		var exec = require('exec');
+	
+		// open -a /Applications/Google\ Chrome.app/ http://twilio.com
+	
+		exec(['open', '-a', '/Applications/Google\ Chrome.app/', 'http://twilio.com'], function(err, out, code) {
+			if (err) throw err;
+		});
+		
+		res.send('nice');
+		
+	});
+		
 	return app;
 	
 }
