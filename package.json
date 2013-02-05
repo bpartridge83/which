@@ -1,6 +1,6 @@
 {
   "name": "which-io",
-  "version": "0.0.1-23",
+  "version": "0.0.1-24",
   "dependencies": {
     "express": "3.x",
     "consolidate": "0.7.x",
@@ -18,10 +18,10 @@
     "portscanner": "0.1.x",
     "connect-mongo": "0.3.x",
     "iron_mq": "0.1.x",
-	"node-logentries": "0.0.x",
-	"request": "2.x.x",
-	"winston-mongodb": "0.4.x",
-	"spooky": "0.2.x"
+    "node-logentries": "0.0.x",
+    "request": "2.x.x",
+    "winston-mongodb": "0.4.x",
+    "spooky": "0.2.x"
   },
   "engines": {
     "node": "0.8.x",

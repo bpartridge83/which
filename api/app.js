@@ -6,7 +6,7 @@ var app = function (app, express, argv) {
 		app = _.extend(app, { '_': _ });
 	
 	app = _.extend(app, {
-		conf: require('../common/configuration'),
+		conf: require('../common/configuration')(app),
 		bcrypt: require('bcrypt-nodejs'),
 		md5: require('MD5')
 	});
