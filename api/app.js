@@ -1,20 +1,17 @@
 // which.io api
 
-var app = function (app, express, argv) {
+var app = function (app, express, argv, io) {
 	
 	var _ = require('underscore'),
-		app = _.extend(app, { '_': _ });
-	
+		app = _.extend(app, { '_': _ }),
+		mongo = require('mongoskin');
+			
 	app = _.extend(app, {
 		conf: require('../common/configuration')(app),
 		bcrypt: require('bcrypt-nodejs'),
-		md5: require('MD5')
+		md5: require('MD5'),
+		io: require('../common/io')(io, 'api')
 	});
-		
-	var cons = require('consolidate'),
-		swig = require('swig'),
-		mongo = require('mongoskin'),
-		MemStore = express.session.MemoryStore;
 		
 	app = _.extend(app, {
 		db: mongo.db(app.conf.db)
@@ -29,9 +26,13 @@ var app = function (app, express, argv) {
 	});
 		
 	app.configure(function () {	
+		app.use(express.static(__dirname + '/../public'));
 		app.use(express.compress());
 		app.use(express.bodyParser());
-		app.use(express.static(__dirname + '/../public'));
+	});
+	
+	app.get('/test/create', function (req, res) {
+		
 	});
 	
 	app.get('/user/create', function (req, res) {
@@ -51,6 +52,30 @@ var app = function (app, express, argv) {
 			return res.send(user.toJSON());
 		});
 		
+	});
+	
+	app.get('/socket/trigger', function (req, res) {
+	
+		app.io.emit('test', 'sending test from the API!');
+		
+		res.send('sent!');
+		
+	});
+	
+	setInterval(function () {		
+		console.log(app.io.count());
+	}, 1000);
+	
+	io.sockets.on('connection', function (socket) {
+		
+		socket.on('user', function(token) {
+			app.io.addUser(token, socket);
+		});
+		
+		socket.on('api', function (data) {
+			console.log(data);
+		});
+
 	});
 	
 	return app;

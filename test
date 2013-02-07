@@ -1,0 +1,29 @@
+#!/bin/bash
+
+if [ -z $2 ]
+then
+	if [ -z $1 ]
+	then
+		REALM='local'
+		ALL=true
+    else
+		if [ $1 = '--web' -o $1 = '--api' ]
+		then
+			REALM=$1
+			ALL=true
+		else
+			REALM='--web'
+		fi
+	fi
+else
+	REALM=$2
+fi
+
+if [ -z $ALL ]
+then
+	#echo $1
+	casperjs test tests/$1.js --includes=common/tests/setup.js --post=common/tests/cleanup.js 
+else 
+	echo 'Running All Available Tests'
+	casperjs test tests/ --includes=common/tests/setup.js --post=common/tests/cleanup.js
+fi

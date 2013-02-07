@@ -1,13 +1,13 @@
 // which.io web
 
-var app = function (app, express, argv) {
+var app = function (app, express, argv, io) {
 	
 	var perfTime = require('perf-time'),
 		perftime = new perfTime(),
 		_ = require('underscore'),
+		app = _.extend(app, { '_': _ }),
 		winston = require('winston'),
 		winston_db = require('winston-mongodb').MongoDB,
-		app = _.extend(app, { '_': _ }),
 		iron_mq = require('iron_mq');
 	
 	app = _.extend(app, {
@@ -17,7 +17,8 @@ var app = function (app, express, argv) {
 		mq: new iron_mq.Client({
 			token: 'fcylDPOXcdhAbDIGGhvLRcszcN0',
 			project_id: '510f55658e7d141d5200001d'
-		})
+		}),
+		io: require('../common/io')(io, 'web')
 	});
 	
 	winston.add(winston.transports.MongoDB, app.conf.winston);
@@ -26,7 +27,8 @@ var app = function (app, express, argv) {
 		swig = require('swig'),
 		mongo = require('mongoskin'),
 		MongoStore = require('connect-mongo')(express),
-		MemStore = express.session.MemoryStore;
+		MemStore = express.session.MemoryStore,
+		url = require('../common/url')(app);
 		
 	app = _.extend(app, {
 		db: mongo.db(app.conf.db.string)
@@ -44,7 +46,7 @@ var app = function (app, express, argv) {
 	var auth = function (req, res, next) {
 		
 		if (!req.session.user) {
-			return res.redirect('/login');
+			return res.redirect(url('/login'));
 		}
 		
 		next();
@@ -52,11 +54,11 @@ var app = function (app, express, argv) {
 	}
 	
 	function csrf(req, res, next) {
-		app.use(express.csrf());
 		res.locals.token = req.session._csrf;
 		next();
 	}
-		
+	
+	/*
 	var routes = [];
 	
 	var path = {
@@ -64,11 +66,13 @@ var app = function (app, express, argv) {
 			console.log('in path!');
 		}
 	}
+	*/
 	
 	function name (req, res, next) {
 		console.log('something');
 		next();
 	}
+
 	
 	function time_start (req, res, next) {
 		app = _.extend(app, {
@@ -79,7 +83,7 @@ var app = function (app, express, argv) {
 	
 	function time_end (req, res, next) {
 		
-		if (req.route !== 'undefined') {
+		if (req.route !== 'undefined' && !app.get('testing')) {
 			res.on('finish', function () {
 				if (!res.get('ignore')) {
 					var time_end = perftime.get();
@@ -95,10 +99,12 @@ var app = function (app, express, argv) {
 		
 	}
 	
+	/*
 	routes.push({
 		name: 'awesomesauce',
 		url: '/google/nice'
 	});
+	*/
 	
 	swig.init({
 	    root: __dirname + '/../views',
@@ -108,6 +114,7 @@ var app = function (app, express, argv) {
 	
 	app.configure(function () {
 
+		app.use('/socket.io', express.static(__dirname + "/../node_modules/socket.io/lib"));
 		app.use(express.favicon(__dirname + '/../public/favicon.ico', {maxAge: 86400000}));
 	    app.use(express.static(__dirname + '/../public'));
 
@@ -119,12 +126,28 @@ var app = function (app, express, argv) {
 		app.use(express.bodyParser());
 		app.use(express.cookieParser());
 
+		app.use(function(req, res, next){
+			if (req.param('_test')) {
+				app.conf.db.collection = 'which_dev_12345';
+				app.set('testing', true);
+			}
+			next();
+		});
+		
+		app.use(function(req, res, next) {
+			res.locals.socket_js = app.conf.socket_io.js;
+			res.locals.socket_server = app.conf.socket_io.server;
+			next();
+		});
+
 		app.use(express.session({
 			secret: 'secret_key',
 			store: new MongoStore({
 				url: 'mongodb://' + app.conf.db.string + '/session',
 			})
 		}));
+		
+		app.use(express.csrf());
 				
 		app.engine('.html.twig', cons.swig);
 		app.set('view engine', 'html.twig');
@@ -132,6 +155,10 @@ var app = function (app, express, argv) {
 	    app.set("view options", { layout: false });
 
 	});
+	
+	/**
+	 * ROUTES
+	 */
 	
 	app.get('/', name, function (req, res) {	
 		res.render('index');
@@ -152,7 +179,7 @@ var app = function (app, express, argv) {
 
 		user.save(function (model) {
 			req.session.user = model.id;
-			return res.redirect('/dashboard');
+			return res.redirect(url('/dashboard'));
 		}, function () {
 
 			return res.send('failed: user already exists!');
@@ -169,17 +196,17 @@ var app = function (app, express, argv) {
 		var user = app.repo.user.findOne({ email: req.body.email }, function (user) {
 
 			if (!user) {
-				return res.redirect('/login');
+				return res.redirect(url('/login'));
 			}
 
 			app.bcrypt.compare(req.body.password, user.get('password'), function(err, match) {
 
 				if (match) {
 					req.session.user = user.id;
-					return res.redirect('/dashboard');
+					return res.redirect(url('/dashboard'));
 				}
 
-				return res.redirect('/login');
+				return res.redirect(url('/login'));
 
 			});
 
@@ -189,7 +216,7 @@ var app = function (app, express, argv) {
 
 	app.get('/logout', function (req, res) {
 		req.session.user = null;
-		return res.redirect('/login');
+		return res.redirect(url('/login'));
 	});
 
 	app.get('/dashboard', auth, csrf, function (req, res) {
@@ -240,7 +267,7 @@ var app = function (app, express, argv) {
 		});
 
 		test.save(function (test) {
-			return res.redirect('/test/'+test.id);
+			return res.redirect(url('/test/'+test.id));
 		}, function () {
 			return res.send('error...');
 		});
@@ -507,8 +534,8 @@ var app = function (app, express, argv) {
 		});
 		
 	});
-
-	app.get('/exec', function () {
+	
+	app.get('/exec', function (res, res) {
 	
 		var exec = require('exec');
 	
@@ -521,6 +548,59 @@ var app = function (app, express, argv) {
 		res.send('nice');
 		
 	});
+	
+	/*
+	setInterval(function () {
+		
+		console.log(app.io.count());
+		
+		app.io.emit('test', 'sending test signal to all users!');
+		app.io.emit('d0W4K4VSclJVjI0FjitrYilq', 'test', 'sending just to the Chrome user');
+		app.io.emit('/41x3v3C8gXh+FwSuSWwsIZW', 'test', 'sending just to the Firefox user');
+		
+	}, 20000);
+	*/
+	
+	app.get('/socket/test', csrf, function (req, res) {
+		
+		console.log('APP SOCKET SETTINGS!');
+		console.log(app.conf.socket_io.server);
+		
+		console.log(res.locals);
+		
+		res.render('socket');
+		
+	});
+	
+	/*
+	
+	io.sockets.on('connection', function (socket) {
+		
+		console.log('');
+		console.log('');
+		console.log('');
+		console.log('reconnection here?');
+		console.log('');
+		console.log('');
+		console.log('');
+		
+		socket.on('user', function(token) {
+			console.log('trying to add user here...');
+			console.log(token);
+			app.io.addUser(token, socket);
+		});
+		
+		socket.on('web', function (data) {
+			console.log(data);
+		});
+		
+		socket.on('disconnect', function(data){
+			app.io.removeSocket(socket.id);
+		});
+
+	});
+	
+	*/
 		
 	return app;
 	

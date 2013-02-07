@@ -1,16 +1,27 @@
 <form action="/login" method="post">
     <div>
         <label>Username:</label>
-        <input type="text" name="email"/>
+        <input type="text" name="email" value="" />
     </div>
     <div>
         <label>Password:</label>
-        <input type="password" name="password"/>
+        <input type="password" name="password" />
     </div>
 	<div>
-		<input type="hidden" name="_csrf" value="{{ token }}">
+		<input type="hidden" name="_csrf" value="{{ token }}" />
 	</div>
     <div>
         <input type="submit" value="Log In"/>
     </div>
 </form>
+
+<script src="http://localhost:5000/socket.io/socket.io.js"></script>
+<script>
+  var socket = io.connect('http://localhost:5000');
+  socket.on('news', function (data) {
+    console.log(data);
+    document.write(data.hello);
+	document.write('<br />');
+    socket.emit('my other event', { my: 'data' });
+  });
+</script>

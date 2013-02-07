@@ -1,0 +1,26 @@
+<html>
+	<body>
+
+		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+		<script src="{{ socket_js }}/socket.io/socket.io.js"></script>
+		<script src="/js/socket.io.js"></script>
+
+		<script>
+
+			socket.init('{{ token }}');
+			socket.add('{{ socket_server }}');
+	
+			socket.on('test', function (data) {
+				$('<li />', {
+					html: data
+				}).appendTo($('#output'));
+			});
+		
+		</script>
+
+		<ul id="output">
+			<li>this is a single item</li>
+		</ul>
+		
+	</body>
+</html>
