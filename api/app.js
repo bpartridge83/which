@@ -4,17 +4,21 @@ var app = function (app, express, argv, io) {
 	
 	var _ = require('underscore'),
 		app = _.extend(app, { '_': _ }),
-		mongo = require('mongoskin');
+		mongo = require('mongoskin'),
+		perfTime = require('perf-time'),
+		perftime = new perfTime();
 			
 	app = _.extend(app, {
 		conf: require('../common/configuration')(app),
 		bcrypt: require('bcrypt-nodejs'),
 		md5: require('MD5'),
-		io: require('../common/io')(io, 'api')
+		io: require('../common/io')(io, 'api'),
+		random: require('randy').randInt,
+		Deferred: require('Deferred')
 	});
 		
 	app = _.extend(app, {
-		db: mongo.db(app.conf.db)
+		db: mongo.db(app.conf.db.string)
 	});
 	
 	app = _.extend(app, {
@@ -22,35 +26,94 @@ var app = function (app, express, argv, io) {
 	});
 
 	app = _.extend(app, {
-		repo: require('../common/repositories')(app)
+		repo: require('../common/repositories')(app),
+		ObjectId: app.db.ObjectID.createFromHexString,
 	});
 		
-	app.configure(function () {	
+	var allowCrossDomain = function(req, res, next) {
+
+		if (req.headers['referer']) {
+
+			var splitted = req.headers['referer'].split('/'),
+				referer = splitted[0] + '//' + splitted[2];
+
+			res.header('Access-Control-Allow-Origin', referer);
+			res.header('Access-Control-Allow-Credentials', true);
+			res.header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+			res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Session, X-Requested-With');
+
+		}
+
+		if ('OPTIONS' == req.method) {
+			res.send(200);
+		} else {
+			next();
+		}
+
+	};
+		
+	app.configure(function () {
 		app.use(express.static(__dirname + '/../public'));
+		app.use(allowCrossDomain);
 		app.use(express.compress());
 		app.use(express.bodyParser());
 	});
 	
-	app.get('/test/create', function (req, res) {
+	app.get('/test/:slug/choose', function (req, res) {
+				
+		app.repo.test.findOne({
+			slug: req.params.slug
+		})
+		.then(function (test) {
+			console.log('in the done() function');
+			console.log(test);
+			return res.send('test');
+		});
+		
+		/*
+		
+		app.repo.test.findOne({
+			slug: req.params.slug
+		}, function (test) {
+			
+			var Option = test.choose();
+			
+			test.save(function () {
+				return res.send(Option.toJSON());
+			});
+			
+			/*
+			console.log('option below');
+			console.log(Option);
+			console.log(Option.toJSON());
+			console.log('option above');
+			*/
+			
+			//});
 		
 	});
 	
-	app.get('/user/create', function (req, res) {
+	app.post('/test/:slug/reward', function (req, res) {
 	
-		var time = new Date().getTime();
+		console.log('the request body here');
+		console.log(req.body._id);
+		console.log('');
 	
-		var user = new model.User({
-			username: req.query.username,
-			password: bcrypt.hashSync(req.query.password),
-			token: md5(req.query.username + time)
-		});
-		
-		console.log(req.query.username);
-		console.log(req.query.password);
-		
-		user.save(function () {
-			return res.send(user.toJSON());
-		});
+		app.repo.option.findOne({
+			_id: req.body._id
+		}, function (option) {
+			app.repo.test.findOne({
+				_id: option.get('test')
+			}, function (test) {
+				test.updateOption(option.get('slug'), req.body.reward, function (test) {
+					test.save(function (test) {
+						console.log(test);
+						return res.send('yay');
+					});
+				});
+			});
+			
+		})
 		
 	});
 	
@@ -61,10 +124,6 @@ var app = function (app, express, argv, io) {
 		res.send('sent!');
 		
 	});
-	
-	setInterval(function () {		
-		console.log(app.io.count());
-	}, 1000);
 	
 	io.sockets.on('connection', function (socket) {
 		

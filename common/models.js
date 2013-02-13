@@ -6,10 +6,14 @@ module.exports = function (app) {
 	
 	Backbone.Model.prototype.save = function (success, failure) {
 		
+		var save = app.Deferred();
+		
 		Backbone.sync('save', this, {
-			success: success,
-			error: failure
+			success: save.resolve,
+			error: save.reject
 		});
+		
+		return save.promise;
 		
 	};
 
@@ -23,31 +27,16 @@ module.exports = function (app) {
 			
 		} else {
 			
-			var save = function (model) {
-				
-				console.log(model);
-				
-				console.log(model.collection);
-				console.log(model.toJSON());
+			//var save = function (model) {
 				
 				app.db.collection(model.collection).insert(model.toJSON(), function (error, data) {
-					
-					console.log(data);
-					
 					model.set('_id', data[0]['_id']);
-					
-					console.log(model);
-					
-					console.log(data[0]['_id']);
-					
-					console.log('trying the options.success here');
-					console.log(options.success);
-					console.log(model.id);
-										
+					console.log('should be returning succees and resolving the save deferred');
 					options.success(model);
 				});
-			}
+			//}
 			 
+			/*
 			if (model.unique) {
 				
 				var query = {};
@@ -58,10 +47,12 @@ module.exports = function (app) {
 				});
 				
 			} else {
+			*/
 				
-				return save(model);
+			//	console.log('');
+			//	return save(model);
 				
-			}
+			//}
 			
 		}
 
@@ -77,14 +68,18 @@ module.exports = function (app) {
 		fullName: function () {
 			return this.get('firstName') + ' ' + this.get('lastName');
 		},
+		
+		setPassword: function (password) {
+			return this.set('password', app.bcrypt.hashSync(password));
+		}
 
     });
 	
-	this.Account = Backbone.Model.extend({
+	this.Project = Backbone.Model.extend({
 		
         initialize: function () {
             
-			this.collection = 'account';
+			this.collection = 'project';
 
         }
 
@@ -94,286 +89,162 @@ module.exports = function (app) {
 		
 		initialize: function () {
 			this.collection = 'test';
+			this.set('useBest', 90);
+			this.set('maxReward', 1);
 		},
 		
-		get: function (attr, opts) {
-			if (typeof this[attr] == 'function')
-			{
-				return this[attr](opts);
+		/**
+		 * return Option
+		 */
+		choose: function () {
+			
+			var option = this.randomOption(),
+				options = this.get('options');
+			
+			var Option = new app.model.Option({
+				slug: option.slug,
+				test: this.id,
+				project: this.get('project'),
+				user: this.get('user')
+			});
+			
+			Option.save(function (_option) {
+				return _option;
+			});
+			
+			for (var i = 0; i < options.length; i++) {
+				if (option.slug == options[i].slug) {
+					options[i].count += 1;
+				}
 			}
-
-			return Backbone.Model.prototype.get.call(this, attr);
+			
+			this.set('options', options);
+			
+			return Option;
+			
 		},
 		
-		choose: function (session) {
-
-			if (session) {
-				
-				app.repo.option.findOne(session, function (option) {
-					return option;
-				});
-				
+		options: function () {
+		
+			var _options = this.get('options');
+			
+			if (typeof(_options) == 'undefined') {
+				return [];
 			} else {
+				return _options;
+			}
+			
+		},
+		
+		getOptionKey: function (slug) {
+		
+			var options = this.get('options');
+			
+			for (var i = 0; i < options.length; i++) {
 				
-				var percentage = Math.floor(Math.random() * 101),
-					bestOption = this.bestOption(),
-					nextBest = this.nextBest(bestOption),
-					choice = null,
-					totalViews = this.totalViews(),
-					gapNeeded = this.gapNeeded(totalViews);
-
-				if (bestOption.pScore && nextBest.pScore && (bestOption.pScore - nextBest.pScore) > gapNeeded) {
-					choice = bestOption;
-					console.log('decided best option at '+totalViews);
-				} else {
-					if (this.get('useBest') && percentage > this.get('useBest')) {
-						choice = this.random();
-					} else {
-						choice = this.bestOption();
-					}
+				if (options[i].slug == slug) {
+					return i;
 				}
 				
-				var option = new app.model.Option({
-					choice: choice.slug,
-					test: this.id
-				});
+			}
+			
+			return null;
+			
+		},
+		
+		addOption: function (slug) {
+			
+			var options = this.options();
+
+			options.push({
+				slug: slug,
+				count: 0,
+				value: 0,
+				reward: 0
+			});
+
+			this.set('options', options);
+			
+		},
+		
+		updateMaxReward: function (reward) {
+		
+			console.log(reward);
+			console.log(this.get('maxReward'));
+		
+			if (reward > this.get('maxReward')) {
 				
-				option.save(function (option) {
-					return option;
-				});
+				var options = this.get('options');
+				
+				for (var i = 0; i < options.length; i++) {
+					
+					options[i].value = (options[i].value * this.get('maxReward')) / reward;
+					
+				}
+				
+				this.set('maxReward', reward);
 				
 			}
-
+			
+		},
+		
+		updateOption: function (slug, reward, callback) {
+									
+			reward = (typeof(reward) == 'undefined') ? reward : 1;
+			
+			var options = this.get('options'),
+				key = this.getOptionKey(slug);
+			
+			options[key].count += 1;
+			
+			var n = options[key].count;
+			
+			//this.updateMaxReward(reward);
+						
+			var value = options[key].value,
+				scaledReward = (!this.get('maxReward')) ? 0 : reward / this.get('maxReward'),
+				new_value = ((n - 1) / n) * value + (1 / n) * scaledReward;
+				
+				console.log('trying to calculate the reward offered');
+				console.log(reward);
+				console.log(this.get('maxReward'));
+				console.log(scaledReward);
+				
+			options[key].value = new_value;
+			options[key].reward += reward;
+			
+			this.set('options', options);
+			
+			console.log(options[key]);
+			
+			callback(this);
+			
 		},
 		
 		bestOption: function () {
-
+			
 			var options = this.get('options'),
-				maxPScore = 0;
-
-			for (var i = 0; i < options.length; i++) {
-				var pScore = new app.model.Option(options[i]).pScore(this);
-				if (pScore > maxPScore) {
-					maxPScore = pScore;
-					var bestOption = i;
-				}
-			}
-
-			if (typeof(bestOption) == 'undefined') {
-				return this.random(true);
-			}
-
-			return options[bestOption];
-
+				best = 0;
+			
 		},
 		
-		nextBest: function (option) {
-
-			var options = this.without(option.slug),
-				maxPScore = 0,
-				bestOption = 0;
-
-			for (var i = 0; i < options.length; i++) {
-				var pScore = new app.model.Option(options[i]).pScore(this);
-				if (pScore > maxPScore) {
-					maxPScore = pScore;
-					bestOption = i;
-				}
-			}
-
-			return options[bestOption];
-
-		},
-		
-		random: function (force) {
-
-			if (!force) {
-				var best = this.bestOption(),
-					options = this.without(best.slug);
-			} else {
-				var options = this.get('options');
-			}
-
-			var index = Math.floor(Math.random() * options.length)
-
-			return options[index];
-
-		},
-		
-		option: function (slug) {
-
-			var options = this.get('options');
-
-			for (var i = 0; i < options.length; i++) {
-
-				if (options[i].slug == slug) {
-					return new app.model.Option(options[i]);
-				}
-			}
-
-			return false;
-		},
-		
-		without: function (slug) {
-
-			var response = [],
-				options = this.get('options');
-
-			return app._.reject(options, function(option){
-				if (option.slug == slug) {
-					return option;
-				}
-			});
-
-		},
-
-		update: function (option) {
-
-			var slug = option.get('slug'),
-				options = this.get('options');
-
-			for (var i = 0; i < options.length; i++) {
-				if (options[i].slug == slug) {
-					options[i] = option.attributes;
-				}
-			}
-
-			return this;
-
-		},
-
-		totalViews: function () {
-
-			var total = 0,
-				options = this.get('options');
-
-			for (var i = 0; i < options.length; i++) {
-				total += options[i].views;
-			}
-
-			return total;
-
-		},
-
-		gapNeeded: function (views) {
-
-			console.log(100 - (1 * Math.floor(views/100)));
-
-			return 100 - (1 * Math.floor(views/100));
-
-		},
-
-		confidence: function() {
-
+		randomOption: function () {
+			
+			var options = this.get('options'),
+				rand = app.random(options.length);
+			
+			return options[rand];
+			
 		}
 		
 	});
-	
+
 	this.Option = Backbone.Model.extend({
-
-		initialize: function() {
+		
+		initialize: function () {
 			this.collection = 'option';
-		},
-
-		reward: function() {
-
-			this.set('success', this.get('success') + 1);
-
-		},
-
-		viewed: function () {
-
-			this.set('views', this.get('views') + 1);
-
-		},
-
-		rate: function (format) {
-
-			var rate = 0;
-
-			if (this.get('views') != 0) {
-				rate = this.get('success') / this.get('views');
-			}
-
-			if (format) {
-				return numeral(rate).format('0.000%');
-			}
-
-			return rate;
-
-		},
-
-		error: function (format) {
-
-			var error = 0;
-
-			if (this.get('views') != 0) {
-
-				var rate = this.rate(),
-					views = this.get('views');
-
-				error = Math.sqrt((rate*(1-rate))/views);
-
-			}
-
-			if (format) {
-				return numeral(error).format('0.000%');
-			}
-
-			return error;
-
-		},
-
-		zScore: function (test) {
-
-			if (!test) {
-				return false;
-			}
-
-			var sum = 0,
-				alternatives = test.without(this.get('slug'));
-
-			for (var i = 0; i < alternatives.length; i++) {
-				option = new app.model.Option(alternatives[i]);
-				var _zScore = (this.rate() - option.rate()) / Math.sqrt(Math.pow(this.error(), 2) + Math.pow(option.error(), 2));
-				sum += _zScore;
-			}
-
-			return sum * 100;
-
-		},
-
-		pScore: function (test) {
-
-			var zScore = this.zScore(test);
-
-			var cumnormdist = function (z)
-			{
-				z = z / 100;
-
-				var b1 =  0.319381530,
-					b2 = -0.356563782,
-					b3 =  1.781477937,
-					b4 = -1.821255978,
-					b5 =  1.330274429,
-					p  =  0.2316419,
-					c  =  0.39894228;
-
-				if (z >= 0.0) {
-					t = 1.0 / ( 1.0 + p * z );
-					return (1.0 - c * Math.exp( -z * z / 2.0 ) * t *
-						( t * ( t * ( t * ( t * b5 + b4 ) + b3 ) + b2 ) + b1 )) * 100;
-				} else {
-					t = 1.0 / ( 1.0 - p * z );
-					return ( c * Math.exp( -z * z / 2.0 ) * t *
-						( t *( t * ( t * ( t * b5 + b4 ) + b3 ) + b2 ) + b1 )) * 100;
-				}
-			}
-
-			return cumnormdist(zScore);
-
 		}
-
+		
 	});
 
 	return this;

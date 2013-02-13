@@ -16,7 +16,8 @@ module.exports = function (app) {
 		
 		findAll: function (callback) {
 			
-			var _assign = this._assign();
+			var query = new app.Deferred(),
+				_assign = this._assign();
 			
 			app.db.collection(this.collection).find().toArray(function (error, data) {
 				
@@ -26,15 +27,22 @@ module.exports = function (app) {
 					response.push(_assign(doc));
 				});
 				
-				return callback(response);
+				query.resolve(response);
 				
 			});
 			
+			return query.promise;
+			
 		},
 		
-		find: function (params, callback) {
+		find: function (params) {
 		
-			var _assign = this._assign();
+			var query = new app.Deferred(),
+				_assign = this._assign();
+			
+			if (typeof(params._id) == 'number' || typeof(params._id) == 'string') {
+				params._id = app.ObjectId(params_.id);
+			}
 			
 			app.db.collection(this.collection).find(params).toArray(function (err, data) {
 				
@@ -44,22 +52,32 @@ module.exports = function (app) {
 					response.push(_assign(doc));
 				});
 				
-				return callback(response);
+				query.resolve(response);
 				
 			});
+			
+			return query.promise;
 			
 		},
 		
 		findOne: function (params, callback) {
 			
-			var _assign = this._assign();
+			var query = new app.Deferred(),
+				_assign = this._assign();
+			
+			if (typeof(params._id) == 'number' || typeof(params._id) == 'string') {
+				params._id = app.ObjectId(params._id);
+			}
 			
 			app.db.collection(this.collection).findOne(params, function (err, doc) {
 				
 				var object = _assign(doc);
-				return callback(object);
+				
+				query.resolve(object);
 				
 			});
+			
+			return query.promise;
 			
 		}
 		
@@ -70,6 +88,13 @@ module.exports = function (app) {
 	app._.extend(this.user, _default, {
 		collection: 'user',
 		model: 'User'
+	});
+	
+	this.project = {};
+	
+	app._.extend(this.project, _default, {
+		collection: 'project',
+		model: 'Project'
 	});
 	
 	this.test = {};

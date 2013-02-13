@@ -18,7 +18,8 @@ var app = function (app, express, argv, io) {
 			token: 'fcylDPOXcdhAbDIGGhvLRcszcN0',
 			project_id: '510f55658e7d141d5200001d'
 		}),
-		io: require('../common/io')(io, 'web')
+		io: require('../common/io')(io, 'web'),
+		Deferred: require('Deferred')
 	});
 	
 	winston.add(winston.transports.MongoDB, app.conf.winston);
@@ -58,21 +59,10 @@ var app = function (app, express, argv, io) {
 		next();
 	}
 	
-	/*
-	var routes = [];
-	
-	var path = {
-		render: function (routes) {
-			console.log('in path!');
-		}
-	}
-	*/
-	
 	function name (req, res, next) {
 		console.log('something');
 		next();
 	}
-
 	
 	function time_start (req, res, next) {
 		app = _.extend(app, {
@@ -89,7 +79,7 @@ var app = function (app, express, argv, io) {
 					var time_end = perftime.get();
 					winston.info('response', {
 						time: (time_end - app.time_start),
-						path: req.route.path
+						//path: req.route.path
 					});
 				}
 			});
@@ -98,13 +88,6 @@ var app = function (app, express, argv, io) {
 		next();
 		
 	}
-	
-	/*
-	routes.push({
-		name: 'awesomesauce',
-		url: '/google/nice'
-	});
-	*/
 	
 	swig.init({
 	    root: __dirname + '/../views',
@@ -170,19 +153,17 @@ var app = function (app, express, argv, io) {
 
 	app.post('/signup', csrf, function (req, res) {
 
+		console.log(req.body);
+
 		var user = new app.model.User({
-			email: req.body.email,
-			password: app.bcrypt.hashSync(req.body.password)
+			email: req.body.email
 		});
+		
+		user.setPassword(req.body.password);
 
-		console.log(user);
-
-		user.save(function (model) {
+		user.save().then(function (model) {
 			req.session.user = model.id;
 			return res.redirect(url('/dashboard'));
-		}, function () {
-
-			return res.send('failed: user already exists!');
 		});
 
 	});
@@ -193,7 +174,9 @@ var app = function (app, express, argv, io) {
 
 	app.post('/login', csrf, function (req, res) {
 
-		var user = app.repo.user.findOne({ email: req.body.email }, function (user) {
+		app.repo.user.findOne({
+			email: req.body.email
+		}).then(function (user) {
 
 			if (!user) {
 				return res.redirect(url('/login'));
@@ -220,12 +203,51 @@ var app = function (app, express, argv, io) {
 	});
 
 	app.get('/dashboard', auth, csrf, function (req, res) {
-		res.render('dashboard');
+		return res.render('dashboard');
+	});
+	
+	app.get('/project/new', auth, csrf, function (req, res) {
+		return res.render('project/new');
+	});
+	
+	app.post('/project/new', auth, csrf, function (req, res) {
+		
+		var project = new Project({
+			name: req.body.name,
+			url: req.body.url
+		});
+		
+		project.save().then(function (project) {
+			return res.redirect('/project/view/'+project.id);
+		});
+
+	});
+	
+	app.get('/project/view/:id', auth, function (req, res) {
+		
+		app.repo.project.findOne({
+			_id: app.ObjectId(req.params.id)
+		})
+		.then(function (project) {
+			
+			if (project) {
+				return res.render('project/view', {
+					project: project.toJSON()
+				});
+			} else {
+				return res.send('not found');
+			}
+			
+		});
+		
 	});
 
 	app.get('/tests', function (req, res) {
 
-		app.repo.test.find({ user: app.ObjectId('510b5da5b01145a61d000001') }, function (tests) {
+		app.repo.test.find({ 
+			user: app.ObjectId('510b5da5b01145a61d000003')
+		})
+		.then( function (tests) {
 
 			console.log(tests.length);
 
@@ -235,93 +257,47 @@ var app = function (app, express, argv, io) {
 
 	});
 
-	app.get('/test/create', function (req, res) {
+	app.get('/test/new', auth, csrf, function (req, res) {
+	
+		return res.render('test/new');
+		
+	});
 
-		console.log('');
-		console.log('');
+	app.post('/test/new', auth, function (req, res) {
 
 		var test = new app.model.Test({
-			slug: 'test-agent-'+Math.floor(Math.random() + 1001),
-			useBest: 90,
+			slug: req.body.slug,
+			project: app.ObjectId('51183779bf7abaae45000001'),
 			user: app.ObjectId('510b5da5b01145a61d000003'),
-			options: [
-				{
-					slug: 'a',
-					views: 0,
-					success: 0,
-					pScore: null
-				},
-				{
-					slug: 'b',
-					views: 0,
-					success: 0,
-					pScore: null
-				},
-				{
-					slug: 'c',
-					views: 0,
-					success: 0,
-					pScore: null
-				}
-			]
 		});
+		
+		test.addOption('a');
+		test.addOption('b');
+		test.addOption('c');
 
-		test.save(function (test) {
-			return res.redirect(url('/test/'+test.id));
-		}, function () {
-			return res.send('error...');
+		test.save().then(function (test) {
+			return res.redirect(url('/test/view/'+test.id));
 		});
 
 	});
 
-	app.get('/test/:id', function (req, res) {
+	app.get('/test/view/:id', auth, function (req, res) {
 
-		app.repo.test.findOne({ '_id': app.ObjectId(req.params.id) }, function (test) {
-
-			res.render('test', {
+		app.repo.test.findOne({ 
+			'_id': app.ObjectId(req.params.id) 
+		})
+		.then(function (test) {
+			return res.render('test/view', {
 				test: test.toJSON()
 			});
-
 		});
 
 	});
-
-	app.get('/test/:id/choose', function (req, res) {
-
-		app.repo.test.findOne({ '_id': app.ObjectId(req.params.id) }, function (test) {
-
-			res.send(test.choose());
-
-		});
-
-	});
-
-	app.get('/option/:id/reward/:reward', function (req, res) {
-
-		app.repo.option.findOne({ '_id': app.ObjectId(req.params.id) }, function (option) {
-
-			option.set('reward', req.params.reward);
-			option.save(function () {
-
-				app.repo.option.findOne({ '_id': option.get('test') }, function (test) {
-
-					app.db.collection('test').update({
-						'_id': option.get('test')
-					}, {
-						$inc: { 'options.$.success' : 1 },
-						$set: { 'options.$.pScore' : option.pScore(test) }
-					}, {}, function (test) {
-
-						res.send('updated option and test');
-
-					})
-
-				});
-
-			});
-
-		});
-
+	
+	app.get('/simulation', function (req, res) {
+	
+		return res.render('simulate');
+		
 	});
 
 	app.get('/ironmq/get', function (req, res) {
@@ -392,7 +368,7 @@ var app = function (app, express, argv, io) {
 
 	app.get('/users', function (req, res) {
 
-		app.repo.user.findAll(function (users) {
+		app.repo.user.findAll().then(function (users) {
 			res.send(users);
 		});
 

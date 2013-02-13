@@ -1,3 +1,5 @@
+/*
+
 $(function () {
 
 	which.init('testing123');
@@ -31,3 +33,5 @@ $(function () {
 	})
 	
 });
+
+*/
