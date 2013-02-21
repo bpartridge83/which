@@ -14,7 +14,8 @@ var app = function (app, express, argv, io) {
 		md5: require('MD5'),
 		io: require('../common/io')(io, 'api'),
 		random: require('randy').randInt,
-		Deferred: require('Deferred')
+		Deferred: require('Deferred'),
+		Async: require('async')
 	});
 		
 	app = _.extend(app, {
@@ -65,55 +66,35 @@ var app = function (app, express, argv, io) {
 			slug: req.params.slug
 		})
 		.then(function (test) {
-			console.log('in the done() function');
-			console.log(test);
-			return res.send('test');
-		});
-		
-		/*
-		
-		app.repo.test.findOne({
-			slug: req.params.slug
-		}, function (test) {
 			
-			var Option = test.choose();
-			
-			test.save(function () {
-				return res.send(Option.toJSON());
+			test.choose().then(function (option) {
+				return res.send(option);
 			});
 			
-			/*
-			console.log('option below');
-			console.log(Option);
-			console.log(Option.toJSON());
-			console.log('option above');
-			*/
-			
-			//});
-		
+		});
+				
 	});
 	
 	app.post('/test/:slug/reward', function (req, res) {
 	
-		console.log('the request body here');
+		console.log('the _id submitted');
 		console.log(req.body._id);
-		console.log('');
 	
 		app.repo.option.findOne({
 			_id: req.body._id
-		}, function (option) {
+		}).then(function (option) {
 			app.repo.test.findOne({
 				_id: option.get('test')
-			}, function (test) {
-				test.updateOption(option.get('slug'), req.body.reward, function (test) {
-					test.save(function (test) {
-						console.log(test);
-						return res.send('yay');
+			}).then(function (test) {
+				test.updateOption(option.get('slug'), option, req.body.reward).then(function () {
+					option.save().then(function (){
+						return res.send('yay!');
 					});
+					
 				});
 			});
 			
-		})
+		});
 		
 	});
 	

@@ -1,0 +1,107 @@
+{% extends 'layout/base.html.twig' %}
+
+{% block title %}which.io - Simulation{% endblock %}
+{% block html_id %}simulation{% endblock %}
+
+{% block body %}
+
+<div class="masthead">
+  <ul class="nav nav-pills pull-right">
+    <li><a href="#">Home</a></li>
+    <li class="active"><a href="/simulation">Simulation</a></li>
+    <li><a href="#">Log In</a></li>
+  </ul>
+  <h3 class="muted">which.io</h3>
+</div>
+
+<hr>
+
+<h2>Simulation</h2>
+
+slug: {{ test.slug }}
+
+<ul>
+	{% for option in test.options %}
+	<li data-option="{{ option.slug }}">{{ option.count }}</li>
+	{% endfor %}
+</ul>
+
+{% endblock %}
+
+{% block script %}
+
+<script>
+
+var getOption = function () {
+	
+	var _i = window.queue.pop();
+	
+	if (!_i) {
+		clearInterval(window.interval);
+		return;
+	}
+	
+	$.get('http://localhost:5010/test/testing/choose', { key: _i }, function (option) {
+	
+		var $el = $('[data-option='+option.slug+']'),
+			count = parseInt($el.text(), 10);
+		
+		var rand = Math.random(),
+			reward = 0;
+			
+		$el.text(count + 1);
+		
+		switch (option.slug) {
+			
+			case 'a':
+			if (rand < 0.05) {
+				reward = 1;
+			}
+			break;
+			
+			case 'b':
+			if (rand < 0.04) {
+				reward = 1;
+			}
+			break;
+			
+			case 'c':
+			default:
+			if (rand < 0.02) {
+				reward = 1;
+			}
+			break;
+			
+		}
+			
+		//console.log(option._id);
+			
+		if (reward) {
+			
+			$.post('http://localhost:5010/test/testing/reward', {
+				key: _i,
+				_id: option._id,
+				reward: reward
+			}, function () {
+				//console.log(option.slug + ':' + reward);
+			});
+		}
+		
+	});
+	
+}
+
+window.queue = [];
+
+window.interval = setInterval(function () {
+	getOption();
+}, 10);
+
+$(function () {
+	for (var i = 0; i < 1000; i++) {
+		window.queue.push(i);
+	}
+});
+
+</script>
+{% endblock %}

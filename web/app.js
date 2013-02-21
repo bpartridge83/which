@@ -273,7 +273,7 @@ var app = function (app, express, argv, io) {
 		
 		test.addOption('a');
 		test.addOption('b');
-		test.addOption('c');
+		//test.addOption('c');
 
 		test.save().then(function (test) {
 			return res.redirect(url('/test/view/'+test.id));
@@ -296,8 +296,40 @@ var app = function (app, express, argv, io) {
 	
 	app.get('/simulation', function (req, res) {
 	
-		return res.render('simulate');
-		
+	app.repo.test.update({
+			slug: 'testing'
+		}, {
+			$set: {
+				'options': [
+					{
+						'slug': 'a',
+						'reward': 0,
+						'count': 0,
+						'value': 0
+					},
+					{
+						'slug': 'b',
+						'reward': 0,
+						'count': 0,
+						'value': 0
+					}
+				]
+			}
+		}).then(function () {
+			
+			app.repo.test.findOne({
+				slug: 'testing'
+			}).then(function (test) {
+			
+				console.log(test.toJSON());
+			
+				return res.render('simulate', {
+					test: test.toJSON()
+				});
+			});
+			
+		});
+			
 	});
 
 	app.get('/ironmq/get', function (req, res) {

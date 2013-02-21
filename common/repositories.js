@@ -14,7 +14,7 @@ module.exports = function (app) {
 			
 		},
 		
-		findAll: function (callback) {
+		findAll: function () {
 			
 			var query = new app.Deferred(),
 				_assign = this._assign();
@@ -60,7 +60,7 @@ module.exports = function (app) {
 			
 		},
 		
-		findOne: function (params, callback) {
+		findOne: function (params) {
 			
 			var query = new app.Deferred(),
 				_assign = this._assign();
@@ -70,11 +70,25 @@ module.exports = function (app) {
 			}
 			
 			app.db.collection(this.collection).findOne(params, function (err, doc) {
-				
 				var object = _assign(doc);
-				
 				query.resolve(object);
-				
+			});
+			
+			return query.promise;
+			
+		},
+		
+		update: function (params, command) {
+			
+			var query = new app.Deferred(),
+				_assign = this._assign();
+			
+			if (typeof(params._id) == 'number' || typeof(params._id) == 'string') {
+				params._id = app.ObjectId(params._id);
+			}
+			
+			app.db.collection(this.collection).update(params, command, function (err, doc2) {
+				query.resolve();
 			});
 			
 			return query.promise;

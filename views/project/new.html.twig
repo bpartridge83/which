@@ -1,0 +1,16 @@
+{% extends 'layout/base.html.twig' %}
+
+{% block body %}
+<h2>New Project</h2>
+
+<form action="/project/new" method="post">
+
+	<input type="text" name="name" />
+	<input type="text" name="url" />
+	<input type="hidden" name="_csrf" value="{{ token }}" />
+
+	<button type="submit">Create Project</button>
+
+</form>
+
+{% endblock %}

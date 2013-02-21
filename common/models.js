@@ -4,9 +4,13 @@ module.exports = function (app) {
 
 	Backbone.Model.prototype.idAttribute = "_id";
 	
-	Backbone.Model.prototype.save = function (success, failure) {
+	Backbone.Model.prototype.save = function () {
 		
 		var save = app.Deferred();
+		
+		this.set({
+			'updatedAt': new Date().getTime()
+		});
 		
 		Backbone.sync('save', this, {
 			success: save.resolve,
@@ -21,38 +25,16 @@ module.exports = function (app) {
 		
 		if (model.id) {
 			
-			app.db.collection(model.collection).update({ _id: model.id }, model.toJSON(), {}, function (error, data) {
-				options.success(model.toJSON());
+			app.db.collection(model.collection).update({ _id: model.id }, model.toJSON(true), {}, function (error, data) {
+				options.success(model.toJSON(true));
 			});
 			
 		} else {
-			
-			//var save = function (model) {
 				
-				app.db.collection(model.collection).insert(model.toJSON(), function (error, data) {
-					model.set('_id', data[0]['_id']);
-					console.log('should be returning succees and resolving the save deferred');
-					options.success(model);
-				});
-			//}
-			 
-			/*
-			if (model.unique) {
-				
-				var query = {};
-				query[model.unique] = model.get(model.unique);
-				
-				app.repo.user.findOne(query, function (user) {
-					return (user) ? options.error() : save(model);
-				});
-				
-			} else {
-			*/
-				
-			//	console.log('');
-			//	return save(model);
-				
-			//}
+			app.db.collection(model.collection).insert(model.toJSON(true), function (error, data) {
+				model.set('_id', data[0]['_id']);
+				options.success(model);
+			});
 			
 		}
 
@@ -62,6 +44,10 @@ module.exports = function (app) {
 		
         initialize: function () {            
 			this.collection = 'user';
+			this.set({
+				'createdAt': new Date().getTime(),
+				'updatedAt': new Date().getTime()
+			})
 			//this.unique = 'email';
         },
 
@@ -78,9 +64,11 @@ module.exports = function (app) {
 	this.Project = Backbone.Model.extend({
 		
         initialize: function () {
-            
 			this.collection = 'project';
-
+			this.set({
+				'createdAt': new Date().getTime(),
+				'updatedAt': new Date().getTime()
+			})
         }
 
     });
@@ -89,8 +77,31 @@ module.exports = function (app) {
 		
 		initialize: function () {
 			this.collection = 'test';
-			this.set('useBest', 90);
-			this.set('maxReward', 1);
+			this.set({
+				'tempurature': 0.5,
+				'useBest': 90,
+				'maxReward': 1,
+				'createdAt': new Date().getTime(),
+				'updatedAt': new Date().getTime()
+			});
+		},
+		
+		draw: function (probs) {
+		
+			var response = new app.Deferred(),
+				rand = app.random(1000) / 1000,
+				cum_prob = 0.0,
+				chosen = null;
+				
+			for (var i = 0; i < probs.length; i++) {
+				cum_prob += probs[i];
+				if (cum_prob > rand) {
+					return i;
+				}
+			}
+			
+			return probs.length - 1;
+			
 		},
 		
 		/**
@@ -98,29 +109,55 @@ module.exports = function (app) {
 		 */
 		choose: function () {
 			
-			var option = this.randomOption(),
-				options = this.get('options');
-			
-			var Option = new app.model.Option({
-				slug: option.slug,
-				test: this.id,
-				project: this.get('project'),
-				user: this.get('user')
+			var _this = this,
+				response = app.Deferred(),
+				options = this.get('options'),
+				count_sum = app._.reduce(options, function (memo, option) {
+					return memo + option.count;
+				}, 0),
+				tempurature = 1 / Math.log(count_sum + 0.0000001),				
+				value_sum = app._.reduce(options, function (memo, option) {
+					return memo + Math.exp(option.value / tempurature);
+				}, 0),
+				probs = [];
+				
+			app._.each(options, function (option) {
+				var v = Math.exp(option.value / tempurature) / value_sum;
+				probs.push(v);
 			});
 			
-			Option.save(function (_option) {
-				return _option;
-			});
-			
-			for (var i = 0; i < options.length; i++) {
-				if (option.slug == options[i].slug) {
-					options[i].count += 1;
+			var choice = options[this.draw(probs)];
+
+			app.repo.test.update({
+				'_id': this.id,
+				'options': {
+					$elemMatch: {
+						'slug': choice.slug
+					}
 				}
-			}
+			}, {
+				$inc: {
+					'options.$.count': 1,
+				},
+				$set: {
+					'options.$.value': _this.calculateValue(choice)
+				}
+			}).then(function (test) {
+
+				var Option = new app.model.Option({
+					slug: choice.slug,
+					test: _this.id,
+					project: _this.get('project'),
+					user: _this.get('user')
+				})
 			
-			this.set('options', options);
+				Option.save().then(function (option) {
+					return response.resolve(option);
+				});
+				
+			});
 			
-			return Option;
+			return response.promise;
 			
 		},
 		
@@ -152,6 +189,22 @@ module.exports = function (app) {
 			
 		},
 		
+		getOption: function (slug) {
+		
+			var options = this.get('options');
+			
+			for (var i = 0; i < options.length; i++) {
+				
+				if (options[i].slug == slug) {
+					return options[i];
+				}
+				
+			}
+			
+			return null;
+			
+		},
+		
 		addOption: function (slug) {
 			
 			var options = this.options();
@@ -169,9 +222,8 @@ module.exports = function (app) {
 		
 		updateMaxReward: function (reward) {
 		
-			console.log(reward);
-			console.log(this.get('maxReward'));
-		
+			console.log('updateMaxReward');
+			
 			if (reward > this.get('maxReward')) {
 				
 				var options = this.get('options');
@@ -188,43 +240,100 @@ module.exports = function (app) {
 			
 		},
 		
-		updateOption: function (slug, reward, callback) {
+		calculateValue: function (option, reward) {
+		
+			reward = reward || 0;
+			
+			if (!option.count) {
+				return 0;
+			}
+		
+			return ((option.count - 1) / option.count) * option.value + (1 / option.count) * reward;
+			
+		},
+		
+		updateOption: function (slug, _option, reward) {
 									
-			reward = (typeof(reward) == 'undefined') ? reward : 1;
+			reward = parseInt(reward, 10) || 1;
+
+			var response = new app.Deferred(),
+				options = this.get('options'),
+				option = this.getOption(slug),
+				//scaledReward = (!this.get('maxReward')) ? 0 : reward / this.get('maxReward'),
+				new_value = this.calculateValue(option, reward),
+				total_count = app._.reduce(options, function (memo, option) {
+					return memo + option.count
+				}, 0),
+				percentage = 100 * (option.count / total_count),
+				conversion = (option.reward / option.count),
+				error = Math.sqrt(conversion * ((1-conversion)/option.count)),
+				conv_from = (conversion - (1.65 * error) < 0) ? 0 : conversion - (1.65 * error),
+				conv_to = (conversion + (1.65 * error) > 1) ? 1 : conversion + (1.65 * error),
+				time_milliseconds = new Date().getMilliseconds(),
+				time_seconds = new Date().getTime(),
+				option_count = option.count,
+				test_id = this.id;
 			
-			var options = this.get('options'),
-				key = this.getOptionKey(slug);
+			app.Async.series([
+			function (callback) {
+					app.repo.test.update({
+						'_id': test_id,
+						'options': {
+							$elemMatch: {
+								'slug': slug
+							}
+						}
+					}, {
+						$inc: {
+							'options.$.reward': reward
+						},
+						$set: {
+							'options.$.value': new_value,
+							'options.$.percentage': percentage,
+							'options.$.conversion': conversion,
+							'options.$.error': error,
+							'options.$.conv_from': conv_from,
+							'options.$.conv_to': conv_to
+						}
+					}).then(function () {
+						callback(null);
+					});
+				},
+				function (callback) {
+					_option.set({
+						'reward': reward,
+						'value': new_value,
+						'percentage': percentage,
+						'conversion': conversion,
+						'error': error,
+						'conv_from': conv_from,
+						'conv_to': conv_to
+					}).save().then(function () {
+						callback(null);
+					});
+				}
+			], function (err, results) {
+				response.resolve();
+			});
 			
-			options[key].count += 1;
-			
-			var n = options[key].count;
-			
-			//this.updateMaxReward(reward);
-						
-			var value = options[key].value,
-				scaledReward = (!this.get('maxReward')) ? 0 : reward / this.get('maxReward'),
-				new_value = ((n - 1) / n) * value + (1 / n) * scaledReward;
-				
-				console.log('trying to calculate the reward offered');
-				console.log(reward);
-				console.log(this.get('maxReward'));
-				console.log(scaledReward);
-				
-			options[key].value = new_value;
-			options[key].reward += reward;
-			
-			this.set('options', options);
-			
-			console.log(options[key]);
-			
-			callback(this);
+			return response.promise;
 			
 		},
 		
 		bestOption: function () {
 			
 			var options = this.get('options'),
-				best = 0;
+				best = 0,
+				key = null;
+				
+			for (var i = 0; i < options.length; i++) {
+				if (options[i].value > 0 && options[i].value > best) {
+					best = options[i].value;
+					key = i;
+				}
+			}
+				
+			return (key) ? options[key] : this.randomOption();
 			
 		},
 		
@@ -235,6 +344,44 @@ module.exports = function (app) {
 			
 			return options[rand];
 			
+		},
+		
+		toJSON: function (original) {
+			
+			var json = Backbone.Model.prototype.toJSON.call(this);
+			
+			if (original) {
+				return json;
+			}
+			
+			var options = this.get('options'),
+				total = {
+					count: 0,
+					reward: 0
+				};
+				
+				/*
+				
+			for (var i = 0; i < options.length; i++) {
+				total.count += options[i].count;
+				total.reward += options[i].reward;
+			}
+				
+			for (var i = 0; i < options.length; i++) {
+				options[i].percentage = 100 * (options[i].count / total.count);
+				options[i].conversion = options[i].reward / options[i].count;
+				options[i].error = Math.sqrt(options[i].conversion * ((1 - options[i].conversion) / options[i].count));
+				options[i].conv_from = (options[i].conversion - (1.65 * options[i].error) < 0) ? 0 : options[i].conversion - (1.65 * options[i].error);
+				options[i].conv_to = (options[i].conversion + (1.65 * options[i].error) > 1) ? 1 : options[i].conversion + (1.65 * options[i].error);
+			}
+			*/
+			
+			return json;
+			
+			return app._.extend(json, {
+				
+			});
+			
 		}
 		
 	});
@@ -243,6 +390,10 @@ module.exports = function (app) {
 		
 		initialize: function () {
 			this.collection = 'option';
+			this.set({
+				'createdAt': new Date().getTime(),
+				'updatedAt': new Date().getTime()
+			})
 		}
 		
 	});
