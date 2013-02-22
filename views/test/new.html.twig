@@ -3,14 +3,17 @@
 {% block body %}
 <h2>New Test</h2>
 
-<form action="/test/new" method="post">
-
-	<input type="text" name="slug" />
-	<input type="text" name="project" value="51183779bf7abaae45000001" />
-	<input type="hidden" name="_csrf" value="{{ token }}" />
-
-	<button type="submit">Create Test</button>
-
+<form action="/project/{{ project._id }}/test" method="post">
+    <div>
+        <label>Key:</label>
+        <input type="text" name="slug" value="" />
+    </div>
+	<div>
+		<input type="hidden" name="_csrf" value="{{ token }}" />
+	</div>
+    <div>
+        <button type="submit" value="Create Test" class="btn">Create Test</button>
+    </div>
 </form>
 
 {% endblock %}

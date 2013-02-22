@@ -89,6 +89,20 @@ var app = function (app, express, argv, io) {
 		
 	}
 	
+	Array.prototype.toJSON = function () {
+	
+		var _this = [];
+	
+		for (var i = 0; i < this.length; i++) {
+			if (typeof(this[i]) == 'object' && typeof(this[i].toJSON == 'function')) {
+				_this[i] = this[i].toJSON();
+			}
+		}
+		
+		return _this;
+		
+	};
+	
 	swig.init({
 	    root: __dirname + '/../views',
 	    allowErrors: true, // allows errors to be thrown and caught by express instead of suppressed by Swig,
@@ -206,6 +220,18 @@ var app = function (app, express, argv, io) {
 		return res.render('dashboard');
 	});
 	
+	app.get('/projects', auth, csrf, function (req, res) {
+	
+		app.repo.project.find({
+			user: req.session.user
+		}).then(function (projects) {
+			return res.render('project/list', {
+				projects: projects.toJSON()
+			});
+		});
+	
+	});
+	
 	app.get('/project/new', auth, csrf, function (req, res) {
 		return res.render('project/new');
 	});
@@ -214,16 +240,17 @@ var app = function (app, express, argv, io) {
 		
 		var project = new Project({
 			name: req.body.name,
-			url: req.body.url
+			url: req.body.url,
+			user: app.ObjectId(req.session.user)
 		});
 		
 		project.save().then(function (project) {
-			return res.redirect('/project/view/'+project.id);
+			return res.redirect('/project/'+project.id);
 		});
 
 	});
 	
-	app.get('/project/view/:id', auth, function (req, res) {
+	app.get('/project/:id', auth, function (req, res) {
 		
 		app.repo.project.findOne({
 			_id: app.ObjectId(req.params.id)
@@ -241,6 +268,46 @@ var app = function (app, express, argv, io) {
 		});
 		
 	});
+	
+	app.get('/project/:id/test', auth, csrf, function (req, res) {
+		
+		app.repo.project.findOne({
+			_id: app.ObjectId(req.params.id)
+		})
+		.then(function (project) {
+			return res.render('test/new', {
+				project: project.toJSON()
+			});
+		});
+		
+	});
+	
+	app.post('/project/:id/test', auth, csrf, function (req, res) {
+		
+		app.repo.project.findOne({
+			_id: app.ObjectId(req.params.id)
+		})
+		.then(function (project) {
+			
+			var test = new app.model.Test({
+				slug: req.body.slug,
+				project: project.id,
+				user: app.ObjectId(req.session.user),
+			});
+			
+			test.save().then(function () {
+				return res.redirect(url('/project/'+project.id+'/test/'+test.id));
+			});
+			
+		});
+		
+	});
+	
+	app.get('/project/:id/test/:id', auth, csrf, function (req, res) {
+		return res.send('awesome');
+	});
+	
+	/*
 
 	app.get('/tests', function (req, res) {
 
@@ -293,6 +360,8 @@ var app = function (app, express, argv, io) {
 		});
 
 	});
+	
+	*/
 	
 	app.get('/simulation', function (req, res) {
 	

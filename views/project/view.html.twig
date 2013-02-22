@@ -1,8 +1,8 @@
 {% extends 'layout/base.html.twig' %}
 
 {% block body %}
-<h2>View Project</h2>
+<h2>Project: {{ project.name }}</h2>
 
-{{ project.name }}
+<a href="/project/{{ project._id }}/test">Create Test</a>
 
 {% endblock %}

@@ -4,13 +4,20 @@
 <h2>New Project</h2>
 
 <form action="/project/new" method="post">
-
-	<input type="text" name="name" />
-	<input type="text" name="url" />
-	<input type="hidden" name="_csrf" value="{{ token }}" />
-
-	<button type="submit">Create Project</button>
-
+    <div>
+        <label>Project Name:</label>
+        <input type="text" name="name" value="" />
+    </div>
+    <div>
+        <label>Website URL:</label>
+        <input type="text" name="url" />
+    </div>
+	<div>
+		<input type="hidden" name="_csrf" value="{{ token }}" />
+	</div>
+    <div>
+        <button type="submit" value="Create Project" class="btn">Create Project</button>
+    </div>
 </form>
 
 {% endblock %}

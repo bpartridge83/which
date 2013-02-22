@@ -18,7 +18,7 @@ module.exports = function (app) {
 			
 			var query = new app.Deferred(),
 				_assign = this._assign();
-			
+				
 			app.db.collection(this.collection).find().toArray(function (error, data) {
 				
 				var response = [];
@@ -40,9 +40,18 @@ module.exports = function (app) {
 			var query = new app.Deferred(),
 				_assign = this._assign();
 			
+				console.log(typeof(params.user));
+			
 			if (typeof(params._id) == 'number' || typeof(params._id) == 'string') {
-				params._id = app.ObjectId(params_.id);
+				params._id = app.ObjectId(params._id);
 			}
+			
+			if (typeof(params.user) == 'number' || typeof(params.user) == 'string') {
+				params.user = app.ObjectId(params.user);
+			}
+			
+			console.log(typeof(params.user));
+			console.log(params);
 			
 			app.db.collection(this.collection).find(params).toArray(function (err, data) {
 				

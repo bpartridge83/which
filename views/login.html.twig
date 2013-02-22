@@ -1,3 +1,7 @@
+{% extends 'layout/base.html.twig' %}
+
+{% block body %}
+
 <form action="/login" method="post">
     <div>
         <label>Username:</label>
@@ -15,13 +19,4 @@
     </div>
 </form>
 
-<script src="http://localhost:5000/socket.io/socket.io.js"></script>
-<script>
-  var socket = io.connect('http://localhost:5000');
-  socket.on('news', function (data) {
-    console.log(data);
-    document.write(data.hello);
-	document.write('<br />');
-    socket.emit('my other event', { my: 'data' });
-  });
-</script>
+{% endblock %}

@@ -391,10 +391,6 @@ module.exports = function (app) {
 			
 			return json;
 			
-			return app._.extend(json, {
-				
-			});
-			
 		}
 		
 	});
