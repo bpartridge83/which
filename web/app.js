@@ -296,10 +296,11 @@ var app = function (app, express, argv, io) {
 	
 	app.get('/simulation', function (req, res) {
 	
-	app.repo.test.update({
+		app.repo.test.update({
 			slug: 'testing'
 		}, {
 			$set: {
+				'maxReward': null,
 				'options': [
 					{
 						'slug': 'a',
@@ -309,6 +310,18 @@ var app = function (app, express, argv, io) {
 					},
 					{
 						'slug': 'b',
+						'reward': 0,
+						'count': 0,
+						'value': 0
+					},
+					{
+						'slug': 'c',
+						'reward': 0,
+						'count': 0,
+						'value': 0
+					},
+					{
+						'slug': 'd',
 						'reward': 0,
 						'count': 0,
 						'value': 0

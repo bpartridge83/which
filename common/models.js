@@ -80,7 +80,6 @@ module.exports = function (app) {
 			this.set({
 				'tempurature': 0.5,
 				'useBest': 90,
-				'maxReward': 1,
 				'createdAt': new Date().getTime(),
 				'updatedAt': new Date().getTime()
 			});
@@ -115,7 +114,7 @@ module.exports = function (app) {
 				count_sum = app._.reduce(options, function (memo, option) {
 					return memo + option.count;
 				}, 0),
-				tempurature = 1 / Math.log(count_sum + 0.0000001),				
+				tempurature = 1 / Math.log((count_sum * 1) + 0.0000001),				
 				value_sum = app._.reduce(options, function (memo, option) {
 					return memo + Math.exp(option.value / tempurature);
 				}, 0),
@@ -220,23 +219,32 @@ module.exports = function (app) {
 			
 		},
 		
-		updateMaxReward: function (reward) {
+		scaleReward: function (reward) {
 		
-			console.log('updateMaxReward');
+			var maxReward = this.get('maxReward');
+				//response = new app.Deferred();
 			
-			if (reward > this.get('maxReward')) {
+			if (!maxReward || reward > maxReward) {
+				
+				console.log('updating maxReward');
 				
 				var options = this.get('options');
 				
 				for (var i = 0; i < options.length; i++) {
 					
-					options[i].value = (options[i].value * this.get('maxReward')) / reward;
+					options[i].value = (options[i].value * maxReward) / reward;
 					
 				}
 				
 				this.set('maxReward', reward);
 				
+			} else {
+				
+				reward = reward / maxReward;
+				
 			}
+			
+			return reward;
 			
 		},
 		
@@ -252,32 +260,36 @@ module.exports = function (app) {
 			
 		},
 		
-		updateOption: function (slug, _option, reward) {
-									
-			reward = parseInt(reward, 10) || 1;
-
+		updateOption: function (_option, reward) {
+						
 			var response = new app.Deferred(),
-				options = this.get('options'),
+				reward = parseInt(reward, 10) || 1,
+				time = new Date().getTime();
+				
+			var oldMaxReward = this.get('maxReward'),
+				scaledReward = this.scaleReward(reward),
+				maxReward = this.get('maxReward');
+				
+			var options = this.get('options'),
+				slug = _option.get('slug'),
 				option = this.getOption(slug),
-				//scaledReward = (!this.get('maxReward')) ? 0 : reward / this.get('maxReward'),
-				new_value = this.calculateValue(option, reward),
-				total_count = app._.reduce(options, function (memo, option) {
-					return memo + option.count
+				test = this,
+				
+				value = this.calculateValue(option, scaledReward),
+				totalCount = app._.reduce(options, function (memo, option) {
+					return memo + option.count;
 				}, 0),
-				percentage = 100 * (option.count / total_count),
-				conversion = (option.reward / option.count),
-				error = Math.sqrt(conversion * ((1-conversion)/option.count)),
+				totalScaledReward = (option.reward / maxReward) + scaledReward,
+				percentage = 100 * (option.count / totalCount),
+				conversion = totalScaledReward / option.count,
+				error = Math.sqrt(conversion * ((1 - conversion) / option.count)),
 				conv_from = (conversion - (1.65 * error) < 0) ? 0 : conversion - (1.65 * error),
-				conv_to = (conversion + (1.65 * error) > 1) ? 1 : conversion + (1.65 * error),
-				time_milliseconds = new Date().getMilliseconds(),
-				time_seconds = new Date().getTime(),
-				option_count = option.count,
-				test_id = this.id;
+				conv_to = (conversion + (1.65 * error) > 1) ? 1 : conversion + (1.65 * error);
 			
-			app.Async.series([
-			function (callback) {
+			app.Async.parallel([
+				function (callback) {
 					app.repo.test.update({
-						'_id': test_id,
+						'_id': test.id,
 						'options': {
 							$elemMatch: {
 								'slug': slug
@@ -288,7 +300,8 @@ module.exports = function (app) {
 							'options.$.reward': reward
 						},
 						$set: {
-							'options.$.value': new_value,
+							'maxReward': maxReward,
+							'options.$.value': value,
 							'options.$.percentage': percentage,
 							'options.$.conversion': conversion,
 							'options.$.error': error,
@@ -302,7 +315,7 @@ module.exports = function (app) {
 				function (callback) {
 					_option.set({
 						'reward': reward,
-						'value': new_value,
+						'value': value,
 						'percentage': percentage,
 						'conversion': conversion,
 						'error': error,
@@ -310,14 +323,14 @@ module.exports = function (app) {
 						'conv_to': conv_to
 					}).save().then(function () {
 						callback(null);
-					});
+					})
 				}
-			], function (err, results) {
+			], function () {
 				response.resolve();
 			});
 			
 			return response.promise;
-			
+						
 		},
 		
 		bestOption: function () {

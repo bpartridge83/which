@@ -82,6 +82,12 @@ module.exports = function (app) {
 			
 			var query = new app.Deferred(),
 				_assign = this._assign();
+				/*
+				console.log('UPDATE');
+				console.log(this.collection);
+				console.log(params);
+				console.log(command);
+				*/
 			
 			if (typeof(params._id) == 'number' || typeof(params._id) == 'string') {
 				params._id = app.ObjectId(params._id);

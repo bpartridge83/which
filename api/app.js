@@ -77,20 +77,15 @@ var app = function (app, express, argv, io) {
 	
 	app.post('/test/:slug/reward', function (req, res) {
 	
-		console.log('the _id submitted');
-		console.log(req.body._id);
-	
 		app.repo.option.findOne({
 			_id: req.body._id
 		}).then(function (option) {
+			
 			app.repo.test.findOne({
 				_id: option.get('test')
 			}).then(function (test) {
-				test.updateOption(option.get('slug'), option, req.body.reward).then(function () {
-					option.save().then(function (){
-						return res.send('yay!');
-					});
-					
+				test.updateOption(option, req.body.reward).then(function (_option) {
+					return res.send('yay!');
 				});
 			});
 			

@@ -32,6 +32,55 @@ slug: {{ test.slug }}
 
 <script>
 
+Array.prototype.shuffle = function() {
+  var i = this.length, j, tempi, tempj;
+  if ( i == 0 ) return false;
+  while ( --i ) {
+     j       = Math.floor( Math.random() * ( i + 1 ) );
+     tempi   = this[i];
+     tempj   = this[j];
+     this[i] = tempj;
+     this[j] = tempi;
+  }
+  return this;
+}
+
+var options = {
+	'a' : {
+		'percentage': 0.08,
+		'reward': 2
+	},
+	'b' : {
+		'percentage': 0.07,
+		'reward': 2
+	},
+	'c' : {
+		'percentage': 0.06,
+		'reward': 2
+	},
+	'd' : {
+		'percentage': 0.05,
+		'reward': 2
+	}
+};
+
+var iterations = 100000;
+
+_.each(options, function (option, slug) {
+	
+	options[slug].choices = [];
+	
+	for (var i = 0; i < iterations; i++) {
+		var success = (i < options[slug].percentage * (iterations / 10)) ? 1 : 0
+		options[slug].choices.push(success);
+	}
+	
+	options[slug].choices.shuffle();
+	
+});
+
+console.log(options);
+
 var getOption = function () {
 	
 	var _i = window.queue.pop();
@@ -45,46 +94,21 @@ var getOption = function () {
 	
 		var $el = $('[data-option='+option.slug+']'),
 			count = parseInt($el.text(), 10);
-		
-		var rand = Math.random(),
-			reward = 0;
 			
 		$el.text(count + 1);
 		
-		switch (option.slug) {
+		var _option = options[option.slug];
 			
-			case 'a':
-			if (rand < 0.05) {
-				reward = 1;
-			}
-			break;
-			
-			case 'b':
-			if (rand < 0.04) {
-				reward = 1;
-			}
-			break;
-			
-			case 'c':
-			default:
-			if (rand < 0.02) {
-				reward = 1;
-			}
-			break;
-			
-		}
-			
-		//console.log(option._id);
-			
-		if (reward) {
+		if (_option.choices.pop() > 0) {
 			
 			$.post('http://localhost:5010/test/testing/reward', {
 				key: _i,
 				_id: option._id,
-				reward: reward
-			}, function () {
-				//console.log(option.slug + ':' + reward);
+				reward: _option.reward
+			}, function (saved_option) {
+				console.log(saved_option);
 			});
+			
 		}
 		
 	});
@@ -95,10 +119,10 @@ window.queue = [];
 
 window.interval = setInterval(function () {
 	getOption();
-}, 10);
+}, 25);
 
 $(function () {
-	for (var i = 0; i < 1000; i++) {
+	for (var i = 0; i < iterations; i++) {
 		window.queue.push(i);
 	}
 });
