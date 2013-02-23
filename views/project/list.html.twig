@@ -1,13 +1,28 @@
 {% extends 'layout/base.html.twig' %}
 
 {% block body %}
+
+<a href="/project/new" class="btn pull-right">Create Project</a>
 <h2>Projects</h2>
 
-{% for project in projects %}
-<a href="/project/{{ project._id }}">{{ project.name }}</a>
-<br />
-{% endfor %}
-
-<a href="/project/new">New Project</a>
+<table class="table">
+	<thead>
+		<tr>
+			<th>Name</th>
+			<th></th>
+		</tr>
+	</thead>
+	<tbody>
+		{% for project in projects %}
+		<tr>
+			<td>
+				{{ project.name }}
+			</td>
+			<td>
+				<a href="/project/{{ project._id }}" class="btn">View Project</a>
+		</tr>
+		{% endfor %}
+	</tbody>
+</table>
 
 {% endblock %}

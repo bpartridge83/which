@@ -19,7 +19,8 @@ var app = function (app, express, argv, io) {
 			project_id: '510f55658e7d141d5200001d'
 		}),
 		io: require('../common/io')(io, 'web'),
-		Deferred: require('Deferred')
+		Deferred: require('Deferred'),
+		Async: require('async')
 	});
 	
 	winston.add(winston.transports.MongoDB, app.conf.winston);
@@ -47,6 +48,7 @@ var app = function (app, express, argv, io) {
 	var auth = function (req, res, next) {
 		
 		if (!req.session.user) {
+			res.locals.user = null;
 			return res.redirect(url('/login'));
 		}
 		
@@ -74,6 +76,7 @@ var app = function (app, express, argv, io) {
 	function time_end (req, res, next) {
 		
 		if (req.route !== 'undefined' && !app.get('testing')) {
+			
 			res.on('finish', function () {
 				if (!res.get('ignore')) {
 					var time_end = perftime.get();
@@ -94,6 +97,7 @@ var app = function (app, express, argv, io) {
 		var _this = [];
 	
 		for (var i = 0; i < this.length; i++) {
+			
 			if (typeof(this[i]) == 'object' && typeof(this[i].toJSON == 'function')) {
 				_this[i] = this[i].toJSON();
 			}
@@ -144,6 +148,11 @@ var app = function (app, express, argv, io) {
 			})
 		}));
 		
+		app.use(function (req, res, next) {
+			res.locals.auth = req.session.user;
+			next();
+		})
+		
 		app.use(express.csrf());
 				
 		app.engine('.html.twig', cons.swig);
@@ -158,16 +167,16 @@ var app = function (app, express, argv, io) {
 	 */
 	
 	app.get('/', name, function (req, res) {	
+		res.locals.current = 'home';
 		res.render('index');
 	});
 
 	app.get('/signup', csrf, function (req, res) {
+		res.locals.current = 'signup';
 		res.render('signup');
 	});
 
 	app.post('/signup', csrf, function (req, res) {
-
-		console.log(req.body);
 
 		var user = new app.model.User({
 			email: req.body.email
@@ -183,6 +192,7 @@ var app = function (app, express, argv, io) {
 	});
 
 	app.get('/login', csrf, function (req, res) {
+		res.locals.current = 'login';
 		res.render('login');
 	});
 
@@ -217,10 +227,13 @@ var app = function (app, express, argv, io) {
 	});
 
 	app.get('/dashboard', auth, csrf, function (req, res) {
+		res.locals.current = 'dashboard';
 		return res.render('dashboard');
 	});
 	
 	app.get('/projects', auth, csrf, function (req, res) {
+	
+		res.locals.current = 'projects';
 	
 		app.repo.project.find({
 			user: req.session.user
@@ -250,21 +263,32 @@ var app = function (app, express, argv, io) {
 
 	});
 	
+	/**
+	 * NOTE: This is how you decorate in series!
+	 */
 	app.get('/project/:id', auth, function (req, res) {
 		
-		app.repo.project.findOne({
-			_id: app.ObjectId(req.params.id)
-		})
-		.then(function (project) {
-			
-			if (project) {
-				return res.render('project/view', {
-					project: project.toJSON()
+		app.Async.series({
+			project: function (callback) {				
+				app.repo.project.findOne({
+					_id: req.params.id
+				})
+				.then(function (project) {
+					callback(null, project);
 				});
-			} else {
-				return res.send('not found');
+			},
+			tests: function (callback) {
+				app.repo.test.find({
+					project: req.params.id
+				}).then(function (tests) {
+					callback(null, tests);
+				})
 			}
-			
+		}, function (err, results) {
+			res.render('project/view', {
+				project : results.project.toJSON(),
+				tests: results.tests.toJSON()
+			});
 		});
 		
 	});
@@ -307,22 +331,25 @@ var app = function (app, express, argv, io) {
 		return res.send('awesome');
 	});
 	
-	/*
-
 	app.get('/tests', function (req, res) {
-
-		app.repo.test.find({ 
-			user: app.ObjectId('510b5da5b01145a61d000003')
+	
+		console.log('/tests');
+	
+		app.repo.test.findAll().then(function (tests) {
+			
+			console.log(tests);
+			console.log(tests.toJSON());
+			console.log(tests[1].toJSON());
+			
+			return res.send({
+				'tests': tests[1]
+			});
+			
 		})
-		.then( function (tests) {
-
-			console.log(tests.length);
-
-			res.send(tests);
-
-		});
-
+		
 	});
+	
+	/*
 
 	app.get('/test/new', auth, csrf, function (req, res) {
 	
@@ -402,8 +429,6 @@ var app = function (app, express, argv, io) {
 			app.repo.test.findOne({
 				slug: 'testing'
 			}).then(function (test) {
-			
-				console.log(test.toJSON());
 			
 				return res.render('simulate', {
 					test: test.toJSON()

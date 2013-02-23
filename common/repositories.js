@@ -40,8 +40,6 @@ module.exports = function (app) {
 			var query = new app.Deferred(),
 				_assign = this._assign();
 			
-				console.log(typeof(params.user));
-			
 			if (typeof(params._id) == 'number' || typeof(params._id) == 'string') {
 				params._id = app.ObjectId(params._id);
 			}
@@ -50,8 +48,9 @@ module.exports = function (app) {
 				params.user = app.ObjectId(params.user);
 			}
 			
-			console.log(typeof(params.user));
-			console.log(params);
+			if (typeof(params.project) == 'number' || typeof(params.project) == 'string') {
+				params.project = app.ObjectId(params.project);
+			}
 			
 			app.db.collection(this.collection).find(params).toArray(function (err, data) {
 				
@@ -70,6 +69,8 @@ module.exports = function (app) {
 		},
 		
 		findOne: function (params) {
+			
+			console.log(params);
 			
 			var query = new app.Deferred(),
 				_assign = this._assign();

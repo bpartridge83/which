@@ -1,8 +1,28 @@
 {% extends 'layout/base.html.twig' %}
 
 {% block body %}
+
+<a href="/project/{{ project._id }}/test" class="btn pull-right">Create Test</a>
 <h2>Project: {{ project.name }}</h2>
 
-<a href="/project/{{ project._id }}/test">Create Test</a>
+<table class="table">
+	<thead>
+		<tr>
+			<th>Name</th>
+			<th></th>
+		</tr>
+	</thead>
+	<tbody>
+		{% for test in tests %}
+		<tr>
+			<td>
+				{{ test.slug }}
+			</td>
+			<td>
+				<a href="/project/{{ project._id }}/test/{{ test._id }}" class="btn">View Test</a>
+		</tr>
+		{% endfor %}
+	</tbody>
+</table>
 
 {% endblock %}
