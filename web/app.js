@@ -79,11 +79,13 @@ var app = function (app, express, argv, io) {
 			
 			res.on('finish', function () {
 				if (!res.get('ignore')) {
+					/*
 					var time_end = perftime.get();
 					winston.info('response', {
 						time: (time_end - app.time_start),
-						//path: req.route.path
+						path: req.route.path
 					});
+					*/
 				}
 			});
 		}
