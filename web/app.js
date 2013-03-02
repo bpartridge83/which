@@ -19,7 +19,7 @@ var app = function (app, express, argv, io) {
 			project_id: '510f55658e7d141d5200001d'
 		}),
 		io: require('../common/io')(io, 'web'),
-		Deferred: require('Deferred'),
+		Deferred: require('deferred'),
 		Async: require('async')
 	});
 	
