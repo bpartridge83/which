@@ -411,18 +411,6 @@ var app = function (app, express, argv, io) {
 						'reward': 0,
 						'count': 0,
 						'value': 0
-					},
-					{
-						'slug': 'c',
-						'reward': 0,
-						'count': 0,
-						'value': 0
-					},
-					{
-						'slug': 'd',
-						'reward': 0,
-						'count': 0,
-						'value': 0
 					}
 				]
 			}
